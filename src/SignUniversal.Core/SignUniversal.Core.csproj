@@ -9,6 +9,9 @@
 
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
+    <PackageReference Include="NuGet.Packaging" />
+    <PackageReference Include="Azure.Identity" />
+    <PackageReference Include="Azure.Developer.TrustedSigning.CryptoProvider" />
   </ItemGroup>
 
 </Project>

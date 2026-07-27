@@ -23,6 +23,17 @@ internal sealed class LocalKeyRemoteSigner : IRemoteSigner, IDisposable
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
 
+        // A realistic code-signing certificate. NuGet requires the code-signing EKU, and
+        // it prefers the subject key identifier as the signer identifier when present —
+        // so without these the tests would exercise a path production never takes.
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, critical: true));
+        request.CertificateExtensions.Add(
+            new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
+        request.CertificateExtensions.Add(
+            new X509EnhancedKeyUsageExtension([new Oid("1.3.6.1.5.5.7.3.3", "Code Signing")], critical: true));
+        request.CertificateExtensions.Add(
+            new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
+
         using X509Certificate2 full = request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddDays(-1),
             DateTimeOffset.UtcNow.AddYears(1));
@@ -32,8 +43,14 @@ internal sealed class LocalKeyRemoteSigner : IRemoteSigner, IDisposable
 
     public X509Certificate2 Certificate { get; }
 
-    public byte[] SignHash(byte[] hash, HashAlgorithmName hashAlgorithm, RSASignaturePadding padding) =>
-        _privateKey.SignHash(hash, hashAlgorithm, padding);
+    /// <summary>Gets the number of times the private key was reached through the remote seam.</summary>
+    public int SignHashCallCount { get; private set; }
+
+    public byte[] SignHash(byte[] hash, HashAlgorithmName hashAlgorithm, RSASignaturePadding padding)
+    {
+        SignHashCallCount++;
+        return _privateKey.SignHash(hash, hashAlgorithm, padding);
+    }
 
     public void Dispose()
     {
