@@ -174,11 +174,13 @@ Out of scope for v1: MSIX/APPX, CAB, scripts, non-Azure KMS.
 Authenticode is a format you cannot get *almost* right, and the Windows verifier is not
 available where most of this code is written. Three checks stand in for it:
 
-1. **Known-answer vectors.** `tools/authenticode-digest-reference.py` is an independent
-   transcription of the digest algorithm. Run it with `--check` over any directory of
-   Microsoft-signed binaries and it recomputes each digest and finds it inside that
-   file's own signature — the same oracle that fixed every format question the spec
-   left ambiguous (`dwLength` including its padding, what `messageDigest` covers).
+1. **A second implementation, and a corpus.** `AuthenticodeDigestReference` in the test
+   project is the digest algorithm transcribed straight from the specification, sharing
+   no code with the engine. Point the suite at a directory of already-signed binaries
+   with `SIGNUNIVERSAL_PE_CORPUS` and it recomputes each digest and finds it inside that
+   file's own signature — the oracle that settled every format question the spec left
+   ambiguous (`dwLength` including its padding, what `messageDigest` covers). A NuGet
+   package cache works: `SIGNUNIVERSAL_PE_CORPUS=~/.nuget/packages`.
 1. **Structural tests.** The encoded `SpcIndirectDataContent` is compared byte for byte
    with a Microsoft-signed binary's, and signing must leave the digest it covers
    unchanged.

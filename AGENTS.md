@@ -116,7 +116,9 @@ dotnet build
 dotnet run --project src/SignUniversal.Cli -- self-test   # must print PASS
 dotnet run --project test/SignUniversal.Core.Tests        # TUnit suite
 
-# Offline oracle: recompute digests of already-signed binaries and find each inside
-# its own signature. Any directory of Microsoft-signed PEs will do.
-python3 tools/authenticode-digest-reference.py --check ~/.nuget/packages
+# The suite skips three checks unless you opt in. Each needs something the machine
+# may not have: a corpus of signed binaries, and a reachable timestamp authority.
+SIGNUNIVERSAL_PE_CORPUS=~/.nuget/packages \
+  SIGNUNIVERSAL_TIMESTAMP_TESTS=1 \
+  dotnet run --project test/SignUniversal.Core.Tests
 ```
