@@ -75,6 +75,19 @@ public static class NuGetPackageSigner
         // after one package — and signing a directory of packages is the normal case.
         using X509Certificate2 certificate = new(signer.Certificate.RawData);
         using AuthorSignPackageRequest request = new(certificate, MapHashAlgorithm(hashAlgorithm));
+
+        // NuGet builds the chain against the machine's trust store, which knows nothing
+        // about the CAs a short-lived certificate is issued from. Seeding the backend's
+        // own chain here is what gets the intermediates embedded in the signature — without
+        // them the package signs cleanly and then fails to verify on someone else's machine.
+        foreach (X509Certificate2 issuer in signer.GetCertificateChain(cancellationToken))
+        {
+            if (!string.Equals(issuer.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+            {
+                request.AdditionalCertificates.Add(new X509Certificate2(issuer.RawData));
+            }
+        }
+
         using SigningOptions options = SigningOptions.CreateFromFilePaths(
             inputPath, outputPath, overwrite, signatureProvider, NullLogger.Instance);
 

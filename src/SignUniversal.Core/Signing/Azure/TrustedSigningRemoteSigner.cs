@@ -63,13 +63,11 @@ public sealed class TrustedSigningRemoteSigner : IRemoteSigner, IDisposable
     /// <inheritdoc />
     public X509Certificate2 Certificate { get; }
 
-    /// <summary>Gets the full chain for the signing certificate, leaf first.</summary>
+    /// <inheritdoc />
     /// <remarks>
-    /// Trusted Signing's issuing intermediates are not in a build agent's trust store, so
-    /// the chain is fetched from the service rather than reconstructed locally.
+    /// Trusted Signing issues from CAs that chain to a root Linux trust stores do not
+    /// carry, so the chain is fetched from the service rather than reconstructed locally.
     /// </remarks>
-    /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>The certificate chain.</returns>
     public IReadOnlyList<X509Certificate2> GetCertificateChain(CancellationToken cancellationToken = default) =>
         _context.GetCertChain(cancellationToken);
 

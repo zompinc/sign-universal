@@ -56,6 +56,10 @@ internal static class Program
                                   Linux agent — see the README.
               --no-timestamp      Skip timestamping (.nupkg). Trusted Signing certificates
                                   expire in days, so the signature will too.
+              --trust-signing-root  Add the backend's root certificate to the current
+                                  user's trust store. Needed on Linux agents, where
+                                  signing otherwise fails with "Certificate chain
+                                  validation failed" — see the README.
 
             Azure Key Vault lands in a later milestone, as does MSI support.
             """);
@@ -83,6 +87,7 @@ internal static class Program
         string hashName = "sha256";
         bool selfSigned = false;
         bool noTimestamp = false;
+        bool trustSigningRoot = false;
 
         for (int i = 1; i < args.Length; i++)
         {
@@ -113,6 +118,9 @@ internal static class Program
                     break;
                 case "--no-timestamp":
                     noTimestamp = true;
+                    break;
+                case "--trust-signing-root":
+                    trustSigningRoot = true;
                     break;
                 case "--self-signed":
                     selfSigned = true;
@@ -202,6 +210,16 @@ internal static class Program
             {
                 Console.WriteLine($"Certificate: {signer.Certificate.Subject}");
 
+                if (trustSigningRoot)
+                {
+                    SigningRootTrust.Install(signer);
+                }
+
+                if (anyPeImage)
+                {
+                    WarnAboutUntimestampedPeSignatures(signer);
+                }
+
                 foreach (string target in files)
                 {
                     if (IsPackage(target))
@@ -253,6 +271,17 @@ internal static class Program
         Console.WriteLine($"Signed {file}");
         Console.WriteLine($"  signature: author, {hashAlgorithm.Name}");
         Console.WriteLine($"  timestamp: {timestampUrl?.ToString() ?? "none"}");
+    }
+
+    private static void WarnAboutUntimestampedPeSignatures(IRemoteSigner signer)
+    {
+        // Authenticode timestamping is still on the roadmap, which is survivable with a
+        // multi-year certificate and not at all survivable with one that lives days.
+        TimeSpan remaining = signer.Certificate.NotAfter.ToUniversalTime() - DateTime.UtcNow;
+
+        Console.Error.WriteLine(
+            "WARNING: PE signatures are not timestamped yet, so they stop validating when the " +
+            $"signing certificate expires — {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
     }
 
     private static bool IsPackage(string path) =>

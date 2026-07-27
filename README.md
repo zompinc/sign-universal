@@ -2,11 +2,11 @@
 
 Cross-platform code signing for .NET — sign Windows binaries (PE), installers (MSI), and **NuGet packages** from **Linux, macOS, or Windows**, with the private key held in **Azure Trusted Signing** or **Azure Key Vault** (the key never leaves the HSM).
 
-> **Status: early, but useful.** NuGet package signing and Authenticode PE signing both work end to end from Linux, against Trusted Signing. MSI, Key Vault, and PE timestamping are still ahead, and the `signtool` gate only runs on Windows.
+> **Status: working for NuGet packages.** Signing a `.nupkg` from Ubuntu with a key in Azure Trusted Signing is verified end to end — `dotnet nuget verify` gives it a clean pass, chain and timestamp included. Authenticode PE signing works too, but has no timestamping yet (see the caveat below). MSI and Key Vault are still ahead.
 
 ```bash
 # What this exists to make possible: signing on ubuntu-latest, key in Trusted Signing.
-sign-universal sign packages/*.nupkg \
+sign-universal sign packages/*.nupkg --trust-signing-root \
   --trusted-signing-endpoint   https://eus.codesigning.azure.net \
   --trusted-signing-account    my-account \
   --trusted-signing-certificate-profile my-profile
@@ -61,13 +61,34 @@ Replacing a `windows-latest` signing job with an Ubuntu one looks like this:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_SIGNER_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_SIGNER_CLIENT_SECRET }}
         run: |
-          sign-universal sign packages/*.nupkg \
+          sign-universal sign packages/*.nupkg --trust-signing-root \
             --trusted-signing-endpoint "${{ secrets.TRUSTED_SIGNING_ENDPOINT }}" \
             --trusted-signing-account "${{ secrets.TRUSTED_SIGNING_ACCOUNT }}" \
             --trusted-signing-certificate-profile "${{ secrets.TRUSTED_SIGNING_CERTIFICATE_PROFILE }}"
 ```
 
 Credentials are read by `DefaultAzureCredential`, so the same `AZURE_*` variables a Windows job already sets keep working. Every file is signed in one session, which matters because opening one mints a certificate.
+
+### Why `--trust-signing-root` is needed on Linux
+
+Without it, signing fails on an otherwise perfectly configured agent with nothing but:
+
+```
+error: Certificate chain validation failed.
+```
+
+Before NuGet will sign, it builds and validates the signing certificate's chain against
+the *machine's* trust store, and an untrusted root is fatal. Trusted Signing issues from
+**Microsoft Identity Verification Root Certificate Authority 2020**, which Linux trust
+stores do not carry — Ubuntu ships only the Microsoft 2017 roots. Windows agents never
+hit this, which is why the requirement is invisible until you move the job.
+
+`--trust-signing-root` installs that root into the **current user's** store, never the
+machine's, and takes it from the chain the signing service itself returned over an
+authenticated connection rather than downloading a CA certificate over plain HTTP.
+
+Consumers need no such thing: `dotnet nuget verify` validates against NuGet's own root
+bundle, which already contains that root.
 
 ### Timestamping
 
@@ -81,6 +102,12 @@ The default authority is **DigiCert**, not Microsoft's `timestamp.acs.microsoft.
 sign-universal sign app.exe --pfx signing.pfx --password ****   # or --self-signed, for smoke tests
 ```
 
+> **Caveat: PE signatures are not timestamped yet.** That is survivable with a
+> conventional multi-year certificate and *not* survivable with Trusted Signing, whose
+> certificates live about three days — the signature dies with the certificate. The tool
+> warns and prints the expiry when signing a PE image. Use `.nupkg` signing, which is
+> timestamped, until the Authenticode timestamping milestone lands.
+
 The file is signed in place: an existing signature is replaced, the image is padded to
 the 8-byte boundary the certificate table needs, the PKCS#7 blob is appended as a
 `WIN_CERTIFICATE`, the data directory is repointed, and the PE checksum is refreshed.
@@ -93,10 +120,10 @@ the 8-byte boundary the certificate table needs, the PKCS#7 blob is appended as 
 | ✅ ASN.1 | `SpcIndirectData` + `SpcLink` | byte-identical to signtool's encoding |
 | ✅ PE | Authenticode hash + cert-table embed | PE32/PE32+; page hashes deferred |
 | ✅ NuGet | author-signed `.nupkg` with a remote key | NuGet's libraries do the format; we do the key |
-| ✅ Trusted Signing | `IRemoteSigner` over the managed client | untested against a live account — see below |
+| ✅ Trusted Signing | `IRemoteSigner` over the managed client | verified against a live account |
 | Azure Key Vault | `IRemoteSigner` via `CryptographyClient` | `DefaultAzureCredential` |
 | MSI | compound-file digest + signature streams | container via OpenMcdf |
-| Timestamp (PE) | RFC 3161 for Authenticode | `.nupkg` timestamping already works |
+| Timestamp (PE) | RFC 3161 for Authenticode | **blocks PE + Trusted Signing**; `.nupkg` already works |
 | Verify | `signtool /verify` harness in CI | harness landed with PE; needs a Windows job |
 
 Out of scope for v1: MSIX/APPX, CAB, scripts, non-Azure KMS.
@@ -120,9 +147,9 @@ available where most of this code is written. Three checks stand in for it:
    signature. A tamper test keeps it honest: modify a signed package and the suite fails
    if NuGet does not notice.
 
-**Not yet proven:** the Trusted Signing backend has never run against a live account —
-there are no credentials in this repo. It compiles and follows the client's documented
-shape, but the first real run should be treated as a test, not a formality.
+The Trusted Signing path has been exercised against a live account: packages signed on
+Ubuntu with a key in the service, verified clean by `dotnet nuget verify` — full
+certificate chain embedded, RFC 3161 timestamp attached, exit code 0.
 
 ## Layout
 
