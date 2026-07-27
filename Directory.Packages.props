@@ -3,43 +3,47 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    <!-- Floating versions during bootstrap; pin to exact versions before v1. -->
-    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+    <!--
+      Exact versions, no floating ranges. A signing tool whose dependency graph can shift
+      between two builds of the same commit is not reproducible, and reproducibility is
+      most of what makes a signature worth anything.
+    -->
+    <CentralPackageFloatingVersionsEnabled>false</CentralPackageFloatingVersionsEnabled>
   </PropertyGroup>
 
   <!-- Build / versioning / analyzers (build-only, PrivateAssets=all at the reference site) -->
   <ItemGroup>
-    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.*" />
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.*" />
-    <PackageVersion Include="StyleCop.Analyzers.Unstable" Version="1.2.0.*" />
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.91" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
+    <PackageVersion Include="StyleCop.Analyzers.Unstable" Version="1.2.0.556" />
   </ItemGroup>
 
   <!-- Runtime dependencies for the signing engine (referenced as the port progresses) -->
   <ItemGroup>
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="8.*" />
-    <PackageVersion Include="Azure.Identity" Version="1.*" />
-    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.*" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
+    <PackageVersion Include="Azure.Identity" Version="1.21.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.10.0" />
     <!--
       NuGet's own client libraries do the .nupkg work: package hashing and the zip
       surgery that adds .signature.p7s are theirs, and they are the format's reference
       implementation. We supply only the CMS signature, from a remote key.
     -->
-    <PackageVersion Include="NuGet.Packaging" Version="6.*" />
+    <PackageVersion Include="NuGet.Packaging" Version="6.14.3" />
     <!--
       Trusted Signing over plain HTTPS. Note this is NOT Microsoft.Trusted.Signing.Client,
       which ships a native signtool Dlib (MFC/MSVC) and is therefore Windows-only — the
       reason `dotnet sign ... trusted-signing` cannot run on Linux at all.
     -->
-    <PackageVersion Include="Azure.Developer.TrustedSigning.CryptoProvider" Version="0.1.*" />
+    <PackageVersion Include="Azure.Developer.TrustedSigning.CryptoProvider" Version="0.1.60" />
     <!-- MSI = OLE Compound File; used once the MSI path is implemented. -->
-    <PackageVersion Include="OpenMcdf" Version="2.*" />
+    <PackageVersion Include="OpenMcdf" Version="2.4.1" />
   </ItemGroup>
 
   <!-- Test stack: TUnit + NSubstitute + FluentAssertions (v7 = last Apache-2.0 line) -->
   <ItemGroup>
-    <PackageVersion Include="TUnit" Version="0.*" />
-    <PackageVersion Include="NSubstitute" Version="5.*" />
-    <PackageVersion Include="FluentAssertions" Version="[7.2.0,8.0.0)" />
+    <PackageVersion Include="TUnit" Version="0.90.45" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="FluentAssertions" Version="7.2.0" />
   </ItemGroup>
 
 </Project>

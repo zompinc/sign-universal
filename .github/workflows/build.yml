@@ -1,0 +1,127 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+# Declared null so the Actions schema linter accepts the `env.ACT` references below.
+# nektos/act sets it, so steps that only make sense on a hosted runner can opt out.
+env:
+  ACT:
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Nerdbank.GitVersioning derives the version from git height, so a shallow
+          # clone produces the wrong version — or no build at all.
+          fetch-depth: 0
+
+      - name: Install .NET
+        # Under act, Windows jobs run directly on the host where the SDK already lives;
+        # the Linux container has no dotnet at all, so it still needs this.
+        if: ${{ !env.ACT || runner.os != 'Windows' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build -c Release
+
+      - name: Self-test
+        run: dotnet run --project src/SignUniversal.Cli -c Release -- self-test
+
+      - name: Test
+        env:
+          # The signtool gate is the only check that can decide whether our Authenticode
+          # output is really valid, and it exists only here. Requiring it means the
+          # Windows leg fails if signtool is missing, rather than skipping the gate and
+          # going green — which would be worse than having no gate at all.
+          SIGNUNIVERSAL_REQUIRE_SIGNTOOL: ${{ runner.os == 'Windows' && '1' || '' }}
+        run: dotnet run --project test/SignUniversal.Core.Tests -c Release
+
+  pack:
+    name: pack
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install .NET
+        # Under act, Windows jobs run directly on the host where the SDK already lives;
+        # the Linux container has no dotnet at all, so it still needs this.
+        if: ${{ !env.ACT || runner.os != 'Windows' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Pack
+        run: dotnet pack src/SignUniversal.Cli -c Release -o artifacts
+
+      - name: Install the packed tool
+        run: |
+          dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Smoke-test the installed tool
+        # Installing is not the same as working: this catches a tool that cannot start on
+        # the runner's runtime, and proves the shipped package can actually sign.
+        run: |
+          sign-universal --version
+          sign-universal self-test
+          cp artifacts/*.nupkg smoke.nupkg
+          sign-universal sign smoke.nupkg --self-signed --no-timestamp
+          dotnet nuget verify smoke.nupkg > verify.txt 2>&1 || true
+          cat verify.txt
+          grep -q "Signature type: Author" verify.txt
+
+      - name: Upload artifacts (.nupkg)
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/
+          retention-days: 5
+
+  publish:
+    name: publish
+    needs: pack
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: artifacts
+
+      - name: Install .NET
+        # Under act, Windows jobs run directly on the host where the SDK already lives;
+        # the Linux container has no dotnet at all, so it still needs this.
+        if: ${{ !env.ACT || runner.os != 'Windows' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Push to nuget.org
+        env:
+          NUGET_API_KEY: ${{ secrets.ZOMP_NUGET_API_KEY }}
+        if: ${{ env.NUGET_API_KEY != '' }}
+        run: |
+          dotnet nuget push "artifacts/*.nupkg" \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

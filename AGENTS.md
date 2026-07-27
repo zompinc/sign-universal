@@ -17,10 +17,26 @@ These are intentional and tracked, not oversights:
 
 1. **`AnalysisMode=Recommended`**, not `AllEnabledByDefault` (Zomp default). Ratchet up
    once the surface stabilizes, then fix/justify each new diagnostic in `.editorconfig`.
-1. **Floating package versions** (`CentralPackageFloatingVersionsEnabled=true`). Pin to
-   exact versions before v1 for reproducible builds.
 1. **StyleCop ceremony rules relaxed** in `.editorconfig` (file headers, element docs,
    `this.` prefix, underscore-field naming). Each suppression carries a reason inline.
+
+Package versions are now pinned exactly — a signing tool whose dependency graph can shift
+between two builds of the same commit is not reproducible.
+
+## Shipping
+
+- **`net8.0` is the floor, not the ceiling.** `RollForward=LatestMajor` is set repo-wide
+  in `Directory.Build.props` and must stay. Without it, anything executable — the tool a
+  user installs, and the test host on a CI runner — refuses to start on a machine with
+  only a newer runtime. CI runners carry exactly one runtime, so this fails immediately.
+- **`fetch-depth: 0` in every CI job.** Nerdbank.GitVersioning derives the version from
+  git height; a shallow clone silently produces the wrong one.
+- **The Windows leg sets `SIGNUNIVERSAL_REQUIRE_SIGNTOOL=1`.** The signtool gate is the
+  only check that can decide whether our Authenticode output is genuinely valid, and it
+  runs nowhere else. With the variable set, a missing signtool fails the build instead of
+  skipping the gate and going green.
+- **The workflow runs under `act`.** It caught both roll-forward bugs before they ever
+  reached a runner; run `act push -j pack --matrix os:ubuntu-latest` before touching CI.
 
 ## Security posture (non-negotiable)
 

@@ -8,11 +8,17 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>sign-universal</ToolCommandName>
     <PackageId>SignUniversal.Cli</PackageId>
-    <Description>Cross-platform Authenticode signing CLI (PE + MSI), keys in Azure Key Vault / Trusted Signing.</Description>
+    <Title>sign-universal</Title>
+    <Description>Cross-platform code signing from Linux, macOS, or Windows with the private key held in Azure Trusted Signing, where it never leaves the HSM. Author-signs NuGet packages and Authenticode-signs Windows PE binaries. Fills the gap between `dotnet sign`, which supports Trusted Signing but only runs on Windows, and `dotnet nuget sign`, which runs anywhere but requires a local private key.</Description>
+    <PackageTags>signing;code-signing;authenticode;nuget;trusted-signing;azure;cross-platform;linux;ci</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SignUniversal.Core\SignUniversal.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

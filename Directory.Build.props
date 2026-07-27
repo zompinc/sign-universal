@@ -15,6 +15,42 @@
     -->
     <AnalysisMode>Recommended</AnalysisMode>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <!--
+      net8.0 is the floor, not the ceiling. The default roll-forward policy will not cross
+      a major version, so without this anything executable here — the tool a user installs,
+      and the test host on a CI runner — refuses to start on a machine carrying only a
+      newer runtime, with "You must install or update .NET".
+    -->
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+  <!-- Package identity, shared by anything that ships. -->
+  <PropertyGroup>
+    <Authors>Zomp Inc.</Authors>
+    <Company>Zomp Inc.</Company>
+    <Copyright>Copyright © Zomp Inc.</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/zompinc/sign-universal</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/zompinc/sign-universal</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <!--
+    Source Link and deterministic output. For a signing tool this is not decoration:
+    it is how someone can tie the binary they installed back to the commit that built it.
+    Source Link ships in the SDK, so no package reference is needed.
+  -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>

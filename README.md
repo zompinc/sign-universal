@@ -37,6 +37,21 @@ Two findings the spike locked in:
 1. The private-key operation is delegated through a custom `RSA` (`RemoteSigningRsa`) whose `SignHash` calls the backend; everything else is stock `SignedCms`/`CmsSigner`.
 1. **`X509Certificate2.CopyWithPrivateKey` cannot be used** — on Linux it eagerly exports private parameters, which a remote key can't provide. Use the `CmsSigner(SubjectIdentifierType, certificate, privateKey)` overload, which signs via the key's `SignHash`.
 
+## Install
+
+```bash
+dotnet tool install --global SignUniversal.Cli
+sign-universal --version
+```
+
+Needs .NET 8 or newer — the tool targets `net8.0` but rolls forward, so a machine carrying
+only a later runtime is fine.
+
+> Publishing happens from CI on a `v*` tag. Until the first tag lands there is nothing on
+> nuget.org yet; build it locally with
+> `dotnet pack src/SignUniversal.Cli -c Release -o artifacts` and
+> `dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli`.
+
 ## Signing NuGet packages
 
 ```bash
@@ -142,6 +157,8 @@ available where most of this code is written. Three checks stand in for it:
    with a Microsoft-signed binary's, and signing must leave the digest it covers
    unchanged.
 1. **`signtool verify /pa`** on Windows — the gate that actually decides for Authenticode.
+   CI's Windows leg sets `SIGNUNIVERSAL_REQUIRE_SIGNTOOL=1`, so a missing signtool fails
+   the build rather than skipping the gate and reporting green.
 1. **`dotnet nuget verify`** for packages — NuGet's own client judging our output, and
    unlike the Authenticode gate it runs on the same Linux machine that produced the
    signature. A tamper test keeps it honest: modify a signed package and the suite fails
