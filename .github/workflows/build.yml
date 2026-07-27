@@ -49,6 +49,9 @@ jobs:
           # Windows leg fails if signtool is missing, rather than skipping the gate and
           # going green — which would be worse than having no gate at all.
           SIGNUNIVERSAL_REQUIRE_SIGNTOOL: ${{ runner.os == 'Windows' && '1' || '' }}
+          # Runners have network, so the timestamp authority is reachable. Locally these
+          # tests skip visibly rather than making every run depend on someone's uptime.
+          SIGNUNIVERSAL_TIMESTAMP_TESTS: '1'
         run: dotnet run --project test/SignUniversal.Core.Tests -c Release
 
   pack:

@@ -148,18 +148,25 @@ public sealed class PeSigningTests
             Environment.GetEnvironmentVariable("SIGNUNIVERSAL_REQUIRE_SIGNTOOL").Should().BeNullOrEmpty(
                 "signtool verification was required but unavailable: {0}", SigntoolHarness.UnavailableReason);
 
-            // Elsewhere the offline checks above stand in.
-            Console.WriteLine($"Skipped: {SigntoolHarness.UnavailableReason}");
-            return;
+            // Elsewhere the offline checks above stand in. Skipping visibly rather than
+            // returning quietly keeps the summary honest about what actually ran.
+            Skip.Test(SigntoolHarness.UnavailableReason);
         }
 
         string path = Path.Combine(Path.GetTempPath(), $"sign-universal-{Guid.NewGuid():N}.dll");
         try
         {
+            // Timestamp when a live authority is allowed. That strengthens this gate for
+            // free: a malformed timestamp attribute would change signtool's verdict away
+            // from the untrusted-root-only outcome asserted below.
+            Uri? timestampUrl = Environment.GetEnvironmentVariable("SIGNUNIVERSAL_TIMESTAMP_TESTS") == "1"
+                ? new Uri(AuthenticodeTimestamp.DefaultTimestampUrl)
+                : null;
+
             using (MemoryStream image = LoadRealPeImage())
             using (LocalKeyRemoteSigner signer = new())
             {
-                PeSigner.Sign(image, signer, HashAlgorithmName.SHA256);
+                PeSigner.Sign(image, signer, HashAlgorithmName.SHA256, timestampUrl);
                 File.WriteAllBytes(path, image.ToArray());
             }
 
@@ -171,7 +178,8 @@ public sealed class PeSigningTests
             // The test certificate is self-signed, so chain validation cannot succeed here.
             // Everything short of trust must, which is what proves the format is right.
             (result.Succeeded || result.RejectedOnlyForUntrustedRoot).Should().BeTrue(
-                "signtool rejected the signature for a reason other than an untrusted root:\n{0}", result.Output);
+                "signtool rejected the signature for a reason other than an untrusted root "
+                + $"(timestamped: {result.IsTimestamped}):\n{result.Output}");
         }
         finally
         {
