@@ -23,6 +23,20 @@ public interface IRemoteSigner
     X509Certificate2 Certificate { get; }
 
     /// <summary>
+    /// Gets the chain for <see cref="Certificate"/>, including the certificate itself.
+    /// </summary>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The chain, or just the signing certificate when the backend has no more to offer.</returns>
+    /// <remarks>
+    /// Backends that mint short-lived certificates issue them from CAs a build agent has
+    /// never heard of, so the chain cannot be reconstructed locally — it has to come from
+    /// the backend. Signatures embed these certificates; without them a verifier has
+    /// nothing to build a path from.
+    /// </remarks>
+    IReadOnlyList<X509Certificate2> GetCertificateChain(CancellationToken cancellationToken = default) =>
+        [Certificate];
+
+    /// <summary>
     /// Signs a precomputed <paramref name="hash"/> with RSA using the specified
     /// hash algorithm and padding, returning the raw signature bytes.
     /// </summary>

@@ -25,3 +25,9 @@ TestResults/
 *.snk
 *.pfx
 signtool-verify/
+
+# Credentials. Never commit these — a signing identity is the one secret that
+# matters most in this repo.
+.secrets
+*.env
+!sample.env

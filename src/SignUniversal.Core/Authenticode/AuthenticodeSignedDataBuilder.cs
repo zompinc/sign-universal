@@ -64,6 +64,17 @@ public static class AuthenticodeSignedDataBuilder
         cmsSigner.SignedAttributes.Add(
             new AsnEncodedData(new Oid(AuthenticodeOids.SpcStatementTypeObjId), EncodeStatementType()));
 
+        // EndCertOnly covers the signing certificate; the issuers above it have to be added
+        // by hand. A backend that mints short-lived certificates is the only thing that can
+        // supply them, since they chain to CAs the machine does not know.
+        foreach (X509Certificate2 issuer in signer.GetCertificateChain())
+        {
+            if (!string.Equals(issuer.Thumbprint, signer.Certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+            {
+                cmsSigner.Certificates.Add(issuer);
+            }
+        }
+
         signedCms.ComputeSignature(cmsSigner);
         return AuthenticodeCms.ToAuthenticodeForm(signedCms.Encode());
     }

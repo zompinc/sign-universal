@@ -71,6 +71,16 @@ urge to hand-roll any of it.
 1. **Use `Azure.Developer.TrustedSigning.CryptoProvider`, never
    `Microsoft.Trusted.Signing.Client`** — the latter ships a native signtool Dlib
    (MFC/MSVC) and is the reason `dotnet sign ... trusted-signing` cannot run on Linux.
+1. **NuGet validates the signing certificate's chain against the machine trust store
+   before it will sign, and an untrusted root is fatal.** Trusted Signing's root is not
+   in Linux trust stores, so signing dies with a bare "Certificate chain validation
+   failed". `--trust-signing-root` installs it for the current user. An untrusted root is
+   only tolerated when the signing certificate is self-issued, which is why the
+   self-signed test path never hits this.
+1. **Feed the backend's chain into `SignPackageRequest.AdditionalCertificates`.** Without
+   it the signature carries the leaf alone, the package verifies on the signing machine,
+   and fails everywhere else. Same reasoning applies to `cmsSigner.Certificates` on the
+   Authenticode side.
 
 ## Build & prove
 
