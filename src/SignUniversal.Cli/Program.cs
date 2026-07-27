@@ -284,8 +284,14 @@ internal static class Program
             $"signing certificate expires — {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
     }
 
-    private static bool IsPackage(string path) =>
-        string.Equals(Path.GetExtension(path), ".nupkg", StringComparison.OrdinalIgnoreCase);
+    private static bool IsPackage(string path)
+    {
+        // Symbol packages are ordinary packages as far as signing is concerned, and
+        // publishing a signed .nupkg beside an unsigned .snupkg is a odd thing to ship.
+        string extension = Path.GetExtension(path);
+        return string.Equals(extension, ".nupkg", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(extension, ".snupkg", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static bool TryTakeValue(string[] args, ref int index, out string value)
     {

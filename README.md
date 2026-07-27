@@ -127,6 +127,22 @@ The file is signed in place: an existing signature is replaced, the image is pad
 the 8-byte boundary the certificate table needs, the PKCS#7 blob is appended as a
 `WIN_CERTIFICATE`, the data directory is repointed, and the PE checksum is refreshed.
 
+## Releases sign themselves
+
+The `publish` job installs the very build being released and uses it to sign its own
+`.nupkg` and `.snupkg` with Trusted Signing, verifies the result with `dotnet nuget
+verify`, and only then pushes. A regression in signing therefore breaks the release
+loudly instead of shipping quietly broken signatures to everyone who installs the tool.
+
+> **Do not register a certificate on the nuget.org account.** Trusted Signing rotates its
+> certificate every three days, and nuget.org registers signing certificates by SHA-256
+> fingerprint — so a Trusted Signing certificate cannot be registered
+> ([NuGetGallery#10027](https://github.com/NuGet/NuGetGallery/issues/10027)). Pushing
+> signed packages works fine while the account has *no* registered certificates. The
+> moment one is registered, every future push must match it, and these signatures never
+> will — which would break publishing for every package on that account, not just this
+> one.
+
 ## Roadmap
 
 | Milestone | What | Notes |
