@@ -99,7 +99,9 @@ jobs:
   publish:
     name: publish
     needs: pack
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    # Tags only, and never from a fork: a fork cannot reach the signing credentials, so
+    # the job could only either fail or publish something unsigned.
+    if: ${{ startsWith(github.ref, 'refs/tags/v') && github.repository == 'zompinc/sign-universal' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -116,12 +118,64 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      - name: Require credentials
+        # Fail before anything is published rather than quietly shipping an unsigned
+        # release because a secret was renamed or scoped away from this repository.
+        env:
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_SIGNER_CLIENT_SECRET }}
+          TRUSTED_SIGNING_ENDPOINT: ${{ secrets.TRUSTED_SIGNING_ENDPOINT }}
+          NUGET_PUSH_KEY: ${{ secrets.NUGET_PUSH_KEY }}
+        run: |
+          missing=
+          [ -n "$AZURE_CLIENT_SECRET" ] || missing="$missing AZURE_SIGNER_CLIENT_SECRET"
+          [ -n "$TRUSTED_SIGNING_ENDPOINT" ] || missing="$missing TRUSTED_SIGNING_ENDPOINT"
+          [ -n "$NUGET_PUSH_KEY" ] || missing="$missing NUGET_PUSH_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Refusing to publish. Missing secrets:$missing"
+            echo "These are organization-level secrets; check they are visible to this repository."
+            exit 1
+          fi
+
+      - name: Install the release that is about to be published
+        run: |
+          dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      - name: Sign the release with itself
+        # Dogfooding on purpose: the build being released is the thing that signs it, so a
+        # regression in signing breaks the release loudly instead of shipping quietly
+        # broken signatures to everyone who installs the tool.
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_SIGNER_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_SIGNER_CLIENT_SECRET }}
+        run: |
+          shopt -s nullglob
+          packages=(artifacts/*.nupkg artifacts/*.snupkg)
+          if [ ${#packages[@]} -eq 0 ]; then
+            echo "::error::No packages to sign."
+            exit 1
+          fi
+          sign-universal sign "${packages[@]}" --trust-signing-root \
+            --trusted-signing-endpoint "${{ secrets.TRUSTED_SIGNING_ENDPOINT }}" \
+            --trusted-signing-account "${{ secrets.TRUSTED_SIGNING_ACCOUNT }}" \
+            --trusted-signing-certificate-profile "${{ secrets.TRUSTED_SIGNING_CERTIFICATE_PROFILE }}"
+
+      - name: Verify the signature before publishing
+        # A real Trusted Signing certificate chains to a root in NuGet's own bundle, so
+        # this must pass outright. Anything less means we are about to publish something
+        # nobody else will be able to validate either.
+        run: |
+          shopt -s nullglob
+          for package in artifacts/*.nupkg artifacts/*.snupkg; do
+            echo "::group::verify $package"
+            dotnet nuget verify "$package" --all
+            echo "::endgroup::"
+          done
+
       - name: Push to nuget.org
         env:
-          # Organization-level secret, shared with the other Zomp repos that publish.
-          # Guarded so a fork, which cannot see it, skips the step instead of failing.
           NUGET_PUSH_KEY: ${{ secrets.NUGET_PUSH_KEY }}
-        if: ${{ env.NUGET_PUSH_KEY != '' }}
         run: |
           dotnet nuget push "artifacts/*.nupkg" \
             --api-key "$NUGET_PUSH_KEY" \

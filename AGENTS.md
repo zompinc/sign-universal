@@ -35,6 +35,12 @@ between two builds of the same commit is not reproducible.
   only check that can decide whether our Authenticode output is genuinely valid, and it
   runs nowhere else. With the variable set, a missing signtool fails the build instead of
   skipping the gate and going green.
+- **Releases are signed by the build being released.** The `publish` job installs the
+  packed tool and signs its own packages with it, then gates the push on
+  `dotnet nuget verify`. Keep that ordering: sign, verify, then push.
+- **Never register a certificate on the nuget.org account.** Trusted Signing rotates
+  certificates every three days and nuget.org registers them by fingerprint, so ours can
+  never match. Registering one would block publishing for every Zomp package.
 - **The workflow runs under `act`.** It caught both roll-forward bugs before they ever
   reached a runner; run `act push -j pack --matrix os:ubuntu-latest` before touching CI.
 
