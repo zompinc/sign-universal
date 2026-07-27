@@ -42,6 +42,13 @@ jobs:
       - name: Self-test
         run: dotnet run --project src/SignUniversal.Cli -c Release -- self-test
 
+      - name: Locate the NuGet cache
+        # A directory of signed binaries for the digest oracle to check us against. Set
+        # from a shell rather than `env:`, which does no expansion — a literal "~" would
+        # simply not exist and the check would skip.
+        shell: bash
+        run: echo "SIGNUNIVERSAL_PE_CORPUS=$HOME/.nuget/packages" >> "$GITHUB_ENV"
+
       - name: Test
         env:
           # The signtool gate is the only check that can decide whether our Authenticode
