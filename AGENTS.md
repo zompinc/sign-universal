@@ -76,6 +76,13 @@ the spec. They look like quirks; they are load-bearing.
    the *signature value* in the signer info — not the file, not the signed attributes —
    so timestamping cannot disturb what it countersigns.
 
+1. **MSI streams are ordered by the raw bytes of their UTF-16LE names**, not by ordinal
+   string comparison. Ordinal compares 16-bit code units; the digest compares
+   little-endian bytes, so the low half of each unit weighs first. MSI's mangled names sit
+   in the range where the two orders genuinely differ.
+1. **The MSI subject is `SpcSipInfo`, not `SpcPeImageData`**, and its first integer is
+   **2**. One is the obvious guess and it is wrong.
+
 ## NuGet packages: reuse, don't reimplement
 
 The `.nupkg` path deliberately looks nothing like the Authenticode one. NuGet's client

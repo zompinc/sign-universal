@@ -2,7 +2,7 @@
 
 Cross-platform code signing for .NET — sign Windows binaries (PE), installers (MSI), and **NuGet packages** from **Linux, macOS, or Windows**, with the private key held in **Azure Trusted Signing** or **Azure Key Vault** (the key never leaves the HSM).
 
-> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. Azure Key Vault is verified the same way. MSI is still ahead.
+> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. Azure Key Vault is verified the same way. MSI signing works and its digest is validated against Microsoft-signed packages, but no Windows verifier has yet passed judgement on an MSI we produced.
 
 ```bash
 # What this exists to make possible: signing on ubuntu-latest, key in Trusted Signing.
@@ -130,6 +130,22 @@ Authenticode keeps its RFC 3161 token in an unsigned attribute under Microsoft's
 
 The default authority is **DigiCert**, not Microsoft's `timestamp.acs.microsoft.com`, because the latter **fails on a stock Linux agent**: its responses carry only the leaf and intermediate, and the root they chain to (*Microsoft Identity Verification Root Certificate Authority 2020*) is not in Ubuntu's trust store, so the chain cannot be built and signing fails. DigiCert returns a full chain to a root Ubuntu already trusts. Override with `--timestamper` if you have installed that root.
 
+## Signing an MSI
+
+```bash
+sign-universal sign installer.msi --pfx signing.pfx
+```
+
+An MSI is an OLE compound file, so there is no offset arithmetic: the digest covers the
+streams themselves, ordered by the raw bytes of their UTF-16LE names — which is not the
+same as ordinal string order, and matters because MSI mangles table names into code
+points where the two disagree. The `\u0005MsiDigitalSignatureEx` pre-hash is covered by
+the digest when present, so re-signing removes it rather than leaving it stale.
+
+The algorithm was established the same way as the PE digest: recompute the digest of an
+already-signed package and find it inside that package's own signature. Point
+`SIGNUNIVERSAL_MSI_ORACLE` at a signed `.msi` to re-run that check.
+
 ## Signing a PE image
 
 ```bash
@@ -166,7 +182,7 @@ loudly instead of shipping quietly broken signatures to everyone who installs th
 | ✅ NuGet | author-signed `.nupkg` with a remote key | NuGet's libraries do the format; we do the key |
 | ✅ Trusted Signing | `IRemoteSigner` over the managed client | verified against a live account |
 | ✅ Azure Key Vault | `IRemoteSigner` via `CryptographyClient` | verified against a live vault |
-| MSI | compound-file digest + signature streams | container via OpenMcdf |
+| ✅ MSI | compound-file digest + signature stream | digest matches Microsoft's; signtool gate still owed |
 | ✅ Timestamp | RFC 3161 for both formats | on by default; `--no-timestamp` opts out |
 | Verify | `signtool /verify` harness in CI | harness landed with PE; needs a Windows job |
 
