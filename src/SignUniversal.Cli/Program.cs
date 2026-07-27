@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using Azure;
+using Azure.Identity;
 using NuGet.Packaging.Signing;
 using SignUniversal.Core.Authenticode;
 using SignUniversal.Core.Packaging;
@@ -261,7 +263,10 @@ internal static class Program
         }
         catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or InvalidOperationException
             or IOException or UnauthorizedAccessException or CryptographicException or UriFormatException
-            or SignatureException or TimestampException)
+            or SignatureException or TimestampException
+            // Azure surfaces missing permissions, expired keys, and bad credentials this
+            // way. They are ordinary misconfiguration, not defects worth a stack trace.
+            or RequestFailedException or AuthenticationFailedException)
         {
             Console.Error.WriteLine($"error: {ex.Message}");
             return 1;

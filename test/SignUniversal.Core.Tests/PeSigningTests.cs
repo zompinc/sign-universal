@@ -187,6 +187,27 @@ public sealed class PeSigningTests
         }
     }
 
+    [Test]
+    public void SignFile_WhenSigningFails_LeavesTheExistingSignatureIntact()
+    {
+        // Preparing an image strips the signature it already had, so a backend that fails
+        // afterwards — an expired key, a lost network, a rejected credential — must not be
+        // able to leave an artifact behind with no signature at all.
+        using TemporaryDirectory directory = new();
+        string path = Path.Combine(directory.Path, "signed.dll");
+        File.WriteAllBytes(path, LoadRealPeImage().ToArray());
+
+        using LocalKeyRemoteSigner signer = new();
+        PeSigner.SignFile(path, signer, HashAlgorithmName.SHA256);
+        byte[] signed = File.ReadAllBytes(path);
+
+        Action failedResign = () => PeSigner.SignFile(
+            path, signer, HashAlgorithmName.SHA256, new Uri("http://localhost:1/timestamp"));
+
+        failedResign.Should().Throw<CryptographicException>();
+        File.ReadAllBytes(path).Should().Equal(signed, "a failed re-sign must not damage the file");
+    }
+
     private static MemoryStream LoadRealPeImage()
     {
         string location = typeof(PeFile).Assembly.Location;
