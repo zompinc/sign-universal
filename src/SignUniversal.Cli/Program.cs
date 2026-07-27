@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using SignUniversal.Core.Authenticode;
+using SignUniversal.Core.Signing;
 
 namespace SignUniversal.Cli;
 
@@ -15,7 +16,7 @@ internal static class Program
         {
             "--version" => PrintVersion(),
             "self-test" => RunSelfTest(),
-            "sign" => NotYetImplemented(),
+            "sign" => RunSign(args),
             _ => PrintHelp(),
         };
     }
@@ -29,9 +30,18 @@ internal static class Program
 
             Usage:
               sign-universal self-test    Verify the remote-key -> SignedCms pipeline on this OS.
-              sign-universal sign ...     Sign a file (not implemented yet).
+              sign-universal sign <file>  Sign a Windows PE image (.exe/.dll) in place.
               sign-universal --version    Show version.
               sign-universal --help       Show this help.
+
+            sign options:
+              --pfx <path>       PKCS#12 file holding the signing certificate and key.
+              --password <pw>    Password for the PKCS#12 file.
+              --self-signed      Sign with a throwaway self-signed certificate (smoke tests only).
+              --hash <algorithm> Digest algorithm: sha256 (default), sha384, or sha512.
+
+            Azure Key Vault and Trusted Signing backends land in the Azure milestone;
+            MSI support lands in the MSI milestone.
             """);
         return 0;
     }
@@ -45,10 +55,103 @@ internal static class Program
         return 0;
     }
 
-    private static int NotYetImplemented()
+    private static int RunSign(string[] args)
     {
-        Console.WriteLine(
-            "The 'sign' command is not implemented yet. See the README roadmap (PE, then MSI).");
+        string? file = null;
+        string? pfxPath = null;
+        string? password = null;
+        string hashName = "sha256";
+        bool selfSigned = false;
+
+        for (int i = 1; i < args.Length; i++)
+        {
+            string argument = args[i];
+            switch (argument)
+            {
+                case "--pfx":
+                    if (!TryTakeValue(args, ref i, out pfxPath)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--password":
+                    if (!TryTakeValue(args, ref i, out password)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--hash":
+                    if (!TryTakeValue(args, ref i, out string? hash)) return UsageError($"'{argument}' needs a value.");
+                    hashName = hash;
+                    break;
+                case "--self-signed":
+                    selfSigned = true;
+                    break;
+                default:
+                    if (argument.StartsWith('-')) return UsageError($"Unknown option '{argument}'.");
+                    if (file is not null) return UsageError("Specify exactly one file to sign.");
+                    file = argument;
+                    break;
+            }
+        }
+
+        if (file is null) return UsageError("Specify the file to sign.");
+        if (!File.Exists(file)) return UsageError($"File not found: {file}");
+        if (selfSigned == (pfxPath is not null)) return UsageError("Specify exactly one of --pfx or --self-signed.");
+
+        if (string.Equals(Path.GetExtension(file), ".msi", StringComparison.OrdinalIgnoreCase))
+        {
+            return UsageError("MSI signing is not implemented yet; only PE images (.exe/.dll) are supported.");
+        }
+
+        HashAlgorithmName hashAlgorithm;
+        switch (hashName.ToLowerInvariant())
+        {
+            case "sha256": hashAlgorithm = HashAlgorithmName.SHA256; break;
+            case "sha384": hashAlgorithm = HashAlgorithmName.SHA384; break;
+            case "sha512": hashAlgorithm = HashAlgorithmName.SHA512; break;
+            default: return UsageError($"Unsupported hash algorithm '{hashName}'; use sha256, sha384, or sha512.");
+        }
+
+        if (selfSigned)
+        {
+            Console.Error.WriteLine(
+                "WARNING: --self-signed uses a throwaway certificate that no machine trusts. " +
+                "It exercises the pipeline; it does not produce a distributable signature.");
+        }
+
+        try
+        {
+            // Loading the key can fail too (wrong password, no RSA key), so it happens
+            // inside the same guard as the signing itself.
+            using EphemeralRemoteSigner? ephemeral = selfSigned ? new EphemeralRemoteSigner() : null;
+            using PfxRemoteSigner? pfxSigner = pfxPath is null ? null : new PfxRemoteSigner(pfxPath, password);
+            IRemoteSigner signer = (IRemoteSigner?)ephemeral ?? pfxSigner!;
+
+            byte[] digest = PeSigner.SignFile(file, signer, hashAlgorithm);
+            Console.WriteLine($"Signed {file}");
+            Console.WriteLine($"  digest ({hashAlgorithm.Name}): {Convert.ToHexString(digest)}");
+            Console.WriteLine($"  certificate:      {signer.Certificate.Subject}");
+            return 0;
+        }
+        catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or InvalidOperationException
+            or IOException or UnauthorizedAccessException or CryptographicException)
+        {
+            Console.Error.WriteLine($"error: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static bool TryTakeValue(string[] args, ref int index, out string value)
+    {
+        if (index + 1 >= args.Length)
+        {
+            value = string.Empty;
+            return false;
+        }
+
+        value = args[++index];
+        return true;
+    }
+
+    private static int UsageError(string message)
+    {
+        Console.Error.WriteLine($"error: {message}");
+        Console.Error.WriteLine("Run 'sign-universal --help' for usage.");
         return 2;
     }
 

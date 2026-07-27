@@ -21,13 +21,32 @@ namespace SignUniversal.Core.Authenticode;
 ///     digestAlgorithm AlgorithmIdentifier,
 ///     digest          OCTET STRING
 /// }
+/// SpcPeImageData ::= SEQUENCE {
+///     flags SpcPeImageFlags DEFAULT { includeResources },
+///     file  [0] EXPLICIT SpcLink
+/// }
+/// SpcLink ::= CHOICE {
+///     url     [0] IMPLICIT IA5STRING,
+///     moniker [1] IMPLICIT SpcSerializedObject,
+///     file    [2] EXPLICIT SpcString
+/// }
+/// SpcString ::= CHOICE {
+///     unicode [0] IMPLICIT BMPSTRING,
+///     ascii   [1] IMPLICIT IA5STRING
+/// }
 /// </code>
-/// The <c>SpcPeImageData</c> value is intentionally minimal here (flags only); the
-/// full <c>SpcLink</c>/file field is filled in once the PE embedding path lands. The
-/// digest and algorithm — the parts a verifier checks against the file — are real.
+/// The encoding mirrors what signtool emits for a PE image with no page hashes:
+/// empty flags plus an empty unicode <c>SpcLink</c> file, i.e. the fixed prefix
+/// <c>3009 030100 A004 A2028000</c>. jsign writes the string <c>&lt;&lt;&lt;Obsolete&gt;&gt;&gt;</c>
+/// there instead; both are accepted, and matching Microsoft keeps byte diffs against
+/// real signatures small.
 /// </remarks>
 public static class SpcIndirectData
 {
+    private static readonly Asn1Tag FileField = new(TagClass.ContextSpecific, 0, isConstructed: true);
+    private static readonly Asn1Tag SpcLinkFile = new(TagClass.ContextSpecific, 2, isConstructed: true);
+    private static readonly Asn1Tag SpcStringUnicode = new(TagClass.ContextSpecific, 0);
+
     /// <summary>Builds the DER-encoded <c>SpcIndirectDataContent</c> for a PE image digest.</summary>
     /// <param name="authenticodeDigest">The Authenticode digest of the subject file.</param>
     /// <param name="hashAlgorithm">The algorithm used to compute the digest.</param>
@@ -43,11 +62,16 @@ public static class SpcIndirectData
             {
                 writer.WriteObjectIdentifier(AuthenticodeOids.SpcPeImageDataObjId);
 
-                // SpcPeImageData ::= SEQUENCE { flags SpcPeImageFlags DEFAULT { includeResources }, file [0] SpcLink }
-                // Minimal placeholder: flags only. TODO: emit the SpcLink file field with the PE work.
                 using (writer.PushSequence())
                 {
-                    writer.WriteBitString([0x00]);
+                    // flags: an empty BIT STRING, leaving SpcPeImageFlags at its default.
+                    writer.WriteBitString(ReadOnlySpan<byte>.Empty);
+
+                    using (writer.PushSequence(FileField))
+                    using (writer.PushSequence(SpcLinkFile))
+                    {
+                        writer.WriteCharacterString(UniversalTagNumber.BMPString, string.Empty, SpcStringUnicode);
+                    }
                 }
             }
 

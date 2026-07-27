@@ -1,3 +1,4 @@
+using System.Formats.Asn1;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
@@ -36,7 +37,14 @@ public static class AuthenticodeSignedDataBuilder
 
         byte[] spcContent = SpcIndirectData.EncodeForPeImage(authenticodeDigest, hashAlgorithm);
 
-        ContentInfo contentInfo = new(new Oid(AuthenticodeOids.SpcIndirectDataObjId), spcContent);
+        // Authenticode's messageDigest attribute covers the *value octets* of
+        // SpcIndirectDataContent, not its whole TLV — the encapsulated content is this
+        // OCTET STRING with its tag swapped for a SEQUENCE (see AuthenticodeCms). Handing
+        // SignedCms the value octets is what makes it compute the digest Windows expects.
+        AsnDecoder.ReadSequence(spcContent, AsnEncodingRules.DER, out int valueOffset, out int valueLength, out _);
+        byte[] spcValueOctets = spcContent[valueOffset..(valueOffset + valueLength)];
+
+        ContentInfo contentInfo = new(new Oid(AuthenticodeOids.SpcIndirectDataObjId), spcValueOctets);
         SignedCms signedCms = new(contentInfo, detached: false);
 
         using RemoteSigningRsa remoteRsa = new(signer);
@@ -51,8 +59,26 @@ public static class AuthenticodeSignedDataBuilder
             IncludeOption = X509IncludeOption.EndCertOnly,
         };
 
+        // Every Authenticode signature in the wild carries this attribute, signtool's and
+        // jsign's included. It is cheap, so we match rather than test what Windows tolerates.
+        cmsSigner.SignedAttributes.Add(
+            new AsnEncodedData(new Oid(AuthenticodeOids.SpcStatementTypeObjId), EncodeStatementType()));
+
         signedCms.ComputeSignature(cmsSigner);
-        return signedCms.Encode();
+        return AuthenticodeCms.ToAuthenticodeForm(signedCms.Encode());
+    }
+
+    /// <summary>Encodes <c>SpcStatementType ::= SEQUENCE OF OBJECT IDENTIFIER</c>.</summary>
+    private static byte[] EncodeStatementType()
+    {
+        AsnWriter writer = new(AsnEncodingRules.DER);
+
+        using (writer.PushSequence())
+        {
+            writer.WriteObjectIdentifier(AuthenticodeOids.IndividualCodeSigningObjId);
+        }
+
+        return writer.Encode();
     }
 
     /// <summary>
@@ -60,14 +86,16 @@ public static class AuthenticodeSignedDataBuilder
     /// content. Signature-only (no chain/trust) — suitable for the spike and for
     /// round-trip tests with self-signed certificates.
     /// </summary>
-    /// <param name="encodedSignedData">The DER-encoded SignedData.</param>
+    /// <param name="encodedSignedData">The DER-encoded SignedData, in Authenticode form.</param>
     /// <returns><see langword="true"/> if the signature verifies.</returns>
     public static bool VerifySignatureOnly(byte[] encodedSignedData)
     {
         ArgumentNullException.ThrowIfNull(encodedSignedData);
 
+        // SignedCms verifies against its own encapsulation, so the Authenticode SEQUENCE
+        // has to go back to being an OCTET STRING first. The bytes it digests are the same.
         SignedCms signedCms = new();
-        signedCms.Decode(encodedSignedData);
+        signedCms.Decode(AuthenticodeCms.ToCmsForm(encodedSignedData));
 
         try
         {
