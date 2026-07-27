@@ -121,6 +121,42 @@ public sealed class MsiSigningTests
             .And.Contain(StreamNames);
     }
 
+    [Test]
+    public void SignedPackage_IsAcceptedBySigntool()
+    {
+        // The gate MSI has been missing. CI authors a real installer with WiX so signtool
+        // has something valid to judge; a hand-built compound file would be rejected for
+        // not being an installer database, which would prove nothing about the signature.
+        string? fixture = Environment.GetEnvironmentVariable("SIGNUNIVERSAL_MSI_FIXTURE");
+        bool available = !string.IsNullOrEmpty(fixture) && File.Exists(fixture) && SigntoolHarness.IsAvailable;
+
+        if (!available)
+        {
+            Environment.GetEnvironmentVariable("SIGNUNIVERSAL_REQUIRE_SIGNTOOL").Should().BeNullOrEmpty(
+                "signtool verification was required, but signtool or the MSI fixture is missing");
+            Skip.Test("set SIGNUNIVERSAL_MSI_FIXTURE to an .msi and run on Windows");
+        }
+
+        using TemporaryDirectory directory = new();
+        string path = Path.Combine(directory.Path, "signed.msi");
+        File.Copy(fixture!, path);
+
+        using (LocalKeyRemoteSigner signer = new())
+        {
+            MsiSigner.SignFile(path, signer, HashAlgorithmName.SHA256);
+        }
+
+        SigntoolResult result = SigntoolHarness.Verify(path);
+
+        result.FoundSignature.Should().BeTrue(
+            "signtool must find the signature stream we wrote:\n{0}", result.Output);
+
+        // Self-signed, so trust cannot succeed; everything short of it must.
+        (result.Succeeded || result.RejectedOnlyForUntrustedRoot).Should().BeTrue(
+            "signtool rejected the MSI signature for a reason other than an untrusted root:\n"
+            + result.Output);
+    }
+
     private static readonly string[] StreamNames = ["䡀䆒䑲", "䄦㢥", "Table"];
 
     /// <summary>

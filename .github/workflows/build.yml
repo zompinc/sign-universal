@@ -49,6 +49,19 @@ jobs:
         shell: bash
         run: echo "SIGNUNIVERSAL_PE_CORPUS=$HOME/.nuget/packages" >> "$GITHUB_ENV"
 
+      - name: Build an MSI fixture
+        # WiX ships on the Windows images, so the MSI gate needs no committed binary and
+        # no download. Only this leg can run signtool anyway.
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          $wix = Join-Path $env:WIX "bin"
+          & "$wix\candle.exe" test\fixtures\sample.wxs -out "$env:RUNNER_TEMP\sample.wixobj"
+          if ($LASTEXITCODE -ne 0) { throw "candle failed" }
+          & "$wix\light.exe" "$env:RUNNER_TEMP\sample.wixobj" -out "$env:RUNNER_TEMP\sample.msi"
+          if ($LASTEXITCODE -ne 0) { throw "light failed" }
+          "SIGNUNIVERSAL_MSI_FIXTURE=$env:RUNNER_TEMP\sample.msi" >> $env:GITHUB_ENV
+
       - name: Test
         env:
           # The signtool gate is the only check that can decide whether our Authenticode
