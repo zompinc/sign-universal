@@ -28,8 +28,8 @@ internal static class Program
     {
         Console.WriteLine(
             """
-            sign-universal — cross-platform Authenticode signing (PE + MSI),
-            keys in Azure Key Vault / Trusted Signing.
+            sign-universal — cross-platform code signing: NuGet packages and Windows PE
+            binaries, with the key held in Azure Trusted Signing.
 
             Usage:
               sign-universal self-test    Verify the remote-key -> SignedCms pipeline on this OS.

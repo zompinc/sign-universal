@@ -142,7 +142,13 @@ public sealed class PeSigningTests
     {
         if (!SigntoolHarness.IsAvailable)
         {
-            // The Windows correctness gate; on other platforms the offline checks above stand in.
+            // CI sets this on the Windows leg so the gate cannot pass by never running —
+            // a silently skipped correctness gate is worse than no gate, because the build
+            // still goes green.
+            Environment.GetEnvironmentVariable("SIGNUNIVERSAL_REQUIRE_SIGNTOOL").Should().BeNullOrEmpty(
+                "signtool verification was required but unavailable: {0}", SigntoolHarness.UnavailableReason);
+
+            // Elsewhere the offline checks above stand in.
             Console.WriteLine($"Skipped: {SigntoolHarness.UnavailableReason}");
             return;
         }
