@@ -50,12 +50,12 @@ internal static class Program
 
             sign options:
               --hash <algorithm>  Digest algorithm: sha256 (default), sha384, or sha512.
-              --timestamper <url> RFC 3161 authority for .nupkg. Defaults to
+              --timestamper <url> RFC 3161 authority. Defaults to
                                   http://timestamp.digicert.com. Microsoft's
                                   timestamp.acs.microsoft.com does not chain on a stock
                                   Linux agent — see the README.
-              --no-timestamp      Skip timestamping (.nupkg). Trusted Signing certificates
-                                  expire in days, so the signature will too.
+              --no-timestamp      Skip timestamping. Trusted Signing certificates expire in
+                                  days, and so will the signature.
               --trust-signing-root  Add the backend's root certificate to the current
                                   user's trust store. Needed on Linux agents, where
                                   signing otherwise fails with "Certificate chain
@@ -168,10 +168,6 @@ internal static class Program
         }
 
         bool anyPeImage = files.Any(candidate => !IsPackage(candidate));
-        if (anyPeImage && (timestamper is not null || noTimestamp))
-        {
-            return UsageError("Timestamping is only wired up for .nupkg so far; PE timestamping is still on the roadmap.");
-        }
 
         if (selfSigned)
         {
@@ -215,7 +211,7 @@ internal static class Program
                     SigningRootTrust.Install(signer);
                 }
 
-                if (anyPeImage)
+                if (anyPeImage && noTimestamp)
                 {
                     WarnAboutUntimestampedPeSignatures(signer);
                 }
@@ -228,9 +224,11 @@ internal static class Program
                     }
                     else
                     {
-                        byte[] digest = PeSigner.SignFile(target, signer, hashAlgorithm);
+                        Uri? timestampUrl = ResolveTimestampUrl(timestamper, noTimestamp);
+                        byte[] digest = PeSigner.SignFile(target, signer, hashAlgorithm, timestampUrl);
                         Console.WriteLine($"Signed {target}");
                         Console.WriteLine($"  digest ({hashAlgorithm.Name}): {Convert.ToHexString(digest)}");
+                        Console.WriteLine($"  timestamp: {timestampUrl?.ToString() ?? "none"}");
                     }
                 }
             }
@@ -253,18 +251,7 @@ internal static class Program
         string? timestamper,
         bool noTimestamp)
     {
-        // Trusted Signing certificates live about three days, so an untimestamped
-        // signature is close to worthless. Timestamping is the default; opting out is
-        // explicit and noisy.
-        Uri? timestampUrl = noTimestamp
-            ? null
-            : new Uri(timestamper ?? NuGetPackageSigner.DefaultTimestampUrl);
-
-        if (timestampUrl is null)
-        {
-            Console.Error.WriteLine(
-                "WARNING: --no-timestamp means this signature expires with the signing certificate.");
-        }
+        Uri? timestampUrl = ResolveTimestampUrl(timestamper, noTimestamp);
 
         await NuGetPackageSigner.SignFileAsync(file, signer, hashAlgorithm, timestampUrl).ConfigureAwait(false);
 
@@ -273,15 +260,20 @@ internal static class Program
         Console.WriteLine($"  timestamp: {timestampUrl?.ToString() ?? "none"}");
     }
 
+    /// <summary>
+    /// Resolves the timestamp authority. Timestamping is the default because a signature
+    /// that is not timestamped dies with its certificate — in days, for Trusted Signing.
+    /// </summary>
+    private static Uri? ResolveTimestampUrl(string? timestamper, bool noTimestamp) =>
+        noTimestamp ? null : new Uri(timestamper ?? AuthenticodeTimestamp.DefaultTimestampUrl);
+
     private static void WarnAboutUntimestampedPeSignatures(IRemoteSigner signer)
     {
-        // Authenticode timestamping is still on the roadmap, which is survivable with a
-        // multi-year certificate and not at all survivable with one that lives days.
         TimeSpan remaining = signer.Certificate.NotAfter.ToUniversalTime() - DateTime.UtcNow;
 
         Console.Error.WriteLine(
-            "WARNING: PE signatures are not timestamped yet, so they stop validating when the " +
-            $"signing certificate expires — {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
+            "WARNING: --no-timestamp means this signature stops validating when the signing " +
+            $"certificate expires — {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
     }
 
     private static bool IsPackage(string path)

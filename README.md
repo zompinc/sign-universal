@@ -2,7 +2,7 @@
 
 Cross-platform code signing for .NET — sign Windows binaries (PE), installers (MSI), and **NuGet packages** from **Linux, macOS, or Windows**, with the private key held in **Azure Trusted Signing** or **Azure Key Vault** (the key never leaves the HSM).
 
-> **Status: working for NuGet packages.** Signing a `.nupkg` from Ubuntu with a key in Azure Trusted Signing is verified end to end — `dotnet nuget verify` gives it a clean pass, chain and timestamp included. Authenticode PE signing works too, but has no timestamping yet (see the caveat below). MSI and Key Vault are still ahead.
+> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. MSI and Key Vault are still ahead.
 
 ```bash
 # What this exists to make possible: signing on ubuntu-latest, key in Trusted Signing.
@@ -107,7 +107,9 @@ bundle, which already contains that root.
 
 ### Timestamping
 
-Signatures are timestamped by default, and with Trusted Signing that is not optional: its certificates live about three days, so an untimestamped signature expires almost immediately.
+Both formats are timestamped by default, and with Trusted Signing that is not optional: its certificates live about three days, so an untimestamped signature expires almost immediately. `--no-timestamp` opts out and says so loudly.
+
+Authenticode keeps its RFC 3161 token in an unsigned attribute under Microsoft's own `szOID_RFC3161_counterSign` (`1.3.6.1.4.1.311.3.3.1`) rather than the `id-aa-timeStampToken` ordinary CMS uses — a detail taken from Microsoft-signed binaries, every one of which carries exactly that attribute. What the authority attests to is the signature value, not the file.
 
 The default authority is **DigiCert**, not Microsoft's `timestamp.acs.microsoft.com`, because the latter **fails on a stock Linux agent**: its responses carry only the leaf and intermediate, and the root they chain to (*Microsoft Identity Verification Root Certificate Authority 2020*) is not in Ubuntu's trust store, so the chain cannot be built and signing fails. DigiCert returns a full chain to a root Ubuntu already trusts. Override with `--timestamper` if you have installed that root.
 
@@ -116,12 +118,6 @@ The default authority is **DigiCert**, not Microsoft's `timestamp.acs.microsoft.
 ```bash
 sign-universal sign app.exe --pfx signing.pfx --password ****   # or --self-signed, for smoke tests
 ```
-
-> **Caveat: PE signatures are not timestamped yet.** That is survivable with a
-> conventional multi-year certificate and *not* survivable with Trusted Signing, whose
-> certificates live about three days — the signature dies with the certificate. The tool
-> warns and prints the expiry when signing a PE image. Use `.nupkg` signing, which is
-> timestamped, until the Authenticode timestamping milestone lands.
 
 The file is signed in place: an existing signature is replaced, the image is padded to
 the 8-byte boundary the certificate table needs, the PKCS#7 blob is appended as a
@@ -154,7 +150,7 @@ loudly instead of shipping quietly broken signatures to everyone who installs th
 | ✅ Trusted Signing | `IRemoteSigner` over the managed client | verified against a live account |
 | Azure Key Vault | `IRemoteSigner` via `CryptographyClient` | `DefaultAzureCredential` |
 | MSI | compound-file digest + signature streams | container via OpenMcdf |
-| Timestamp (PE) | RFC 3161 for Authenticode | **blocks PE + Trusted Signing**; `.nupkg` already works |
+| ✅ Timestamp | RFC 3161 for both formats | on by default; `--no-timestamp` opts out |
 | Verify | `signtool /verify` harness in CI | harness landed with PE; needs a Windows job |
 
 Out of scope for v1: MSIX/APPX, CAB, scripts, non-Azure KMS.

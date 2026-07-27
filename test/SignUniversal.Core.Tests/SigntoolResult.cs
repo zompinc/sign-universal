@@ -20,6 +20,10 @@ internal sealed partial record SigntoolResult(int ExitCode, string Output)
         !Contains("is not signed") &&
         !Contains("0x800B0100");
 
+    /// <summary>Gets a value indicating whether signtool saw an RFC 3161 timestamp.</summary>
+    public bool IsTimestamped =>
+        Contains("The signature is timestamped") || Contains("Timestamp Verified by");
+
     /// <summary>
     /// Gets a value indicating whether the only thing signtool objected to was an
     /// untrusted certificate chain — the expected verdict for a self-signed test key.

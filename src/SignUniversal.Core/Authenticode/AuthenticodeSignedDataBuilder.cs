@@ -27,11 +27,18 @@ public static class AuthenticodeSignedDataBuilder
     /// <param name="signer">The backend holding the private key.</param>
     /// <param name="authenticodeDigest">The Authenticode digest of the subject file.</param>
     /// <param name="hashAlgorithm">The digest/signature hash algorithm.</param>
+    /// <param name="timestampUrl">
+    /// The RFC 3161 authority to countersign with, or <see langword="null"/> to leave the
+    /// signature untimestamped — in which case it expires with the certificate.
+    /// </param>
+    /// <param name="timestampTimeout">How long to wait on the authority.</param>
     /// <returns>The encoded PKCS#7 SignedData.</returns>
     public static byte[] Build(
         IRemoteSigner signer,
         ReadOnlySpan<byte> authenticodeDigest,
-        HashAlgorithmName hashAlgorithm)
+        HashAlgorithmName hashAlgorithm,
+        Uri? timestampUrl = null,
+        TimeSpan? timestampTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(signer);
 
@@ -76,6 +83,13 @@ public static class AuthenticodeSignedDataBuilder
         }
 
         signedCms.ComputeSignature(cmsSigner);
+
+        if (timestampUrl is not null)
+        {
+            AuthenticodeTimestamp.Apply(
+                signedCms, timestampUrl, hashAlgorithm, timestampTimeout ?? TimeSpan.FromSeconds(60));
+        }
+
         return AuthenticodeCms.ToAuthenticodeForm(signedCms.Encode());
     }
 

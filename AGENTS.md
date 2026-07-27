@@ -71,6 +71,11 @@ the spec. They look like quirks; they are load-bearing.
    `SizeOfHeaders` gives the same answer for ordinary compiler output and the wrong one
    otherwise.
 
+1. **The RFC 3161 token lives under `1.3.6.1.4.1.311.3.3.1`**, Microsoft's own OID, not
+   the `id-aa-timeStampToken` that ordinary CMS and NuGet use. The authority attests to
+   the *signature value* in the signer info — not the file, not the signed attributes —
+   so timestamping cannot disturb what it countersigns.
+
 ## NuGet packages: reuse, don't reimplement
 
 The `.nupkg` path deliberately looks nothing like the Authenticode one. NuGet's client
