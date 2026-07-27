@@ -2,7 +2,7 @@
 
 Cross-platform code signing for .NET — sign Windows binaries (PE), installers (MSI), and **NuGet packages** from **Linux, macOS, or Windows**, with the private key held in **Azure Trusted Signing** or **Azure Key Vault** (the key never leaves the HSM).
 
-> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. MSI and Key Vault are still ahead.
+> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. Azure Key Vault is implemented but has not yet been run against a live vault; MSI is still ahead.
 
 ```bash
 # What this exists to make possible: signing on ubuntu-latest, key in Trusted Signing.
@@ -51,6 +51,20 @@ only a later runtime is fine.
 > nuget.org yet; build it locally with
 > `dotnet pack src/SignUniversal.Cli -c Release -o artifacts` and
 > `dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli`.
+
+## Key sources
+
+| Source | Options | Notes |
+|---|---|---|
+| Azure Trusted Signing | `--trusted-signing-endpoint`, `--trusted-signing-account`, `--trusted-signing-certificate-profile` | Verified against a live account. Needs `--trust-signing-root` on Linux |
+| Azure Key Vault | `--key-vault-url`, `--key-vault-certificate` | Long-lived certificate, usually from a public CA |
+| Local PKCS#12 | `--pfx`, `--password` | For local runs and testing |
+| Throwaway | `--self-signed` | Smoke tests only; nothing trusts it |
+
+Azure credentials come from `DefaultAzureCredential` in both cloud cases, so the usual
+`AZURE_TENANT_ID` / `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` variables work unchanged.
+Key Vault needs `certificates/get` to read the certificate and `keys/sign` to use it —
+the private key is never fetched, exportable or not.
 
 ## Signing NuGet packages
 
@@ -148,7 +162,7 @@ loudly instead of shipping quietly broken signatures to everyone who installs th
 | ✅ PE | Authenticode hash + cert-table embed | PE32/PE32+; page hashes deferred |
 | ✅ NuGet | author-signed `.nupkg` with a remote key | NuGet's libraries do the format; we do the key |
 | ✅ Trusted Signing | `IRemoteSigner` over the managed client | verified against a live account |
-| Azure Key Vault | `IRemoteSigner` via `CryptographyClient` | `DefaultAzureCredential` |
+| ✅ Azure Key Vault | `IRemoteSigner` via `CryptographyClient` | not yet run against a live vault |
 | MSI | compound-file digest + signature streams | container via OpenMcdf |
 | ✅ Timestamp | RFC 3161 for both formats | on by default; `--no-timestamp` opts out |
 | Verify | `signtool /verify` harness in CI | harness landed with PE; needs a Windows job |

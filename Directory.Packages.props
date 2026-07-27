@@ -23,6 +23,7 @@
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="8.0.1" />
     <PackageVersion Include="Azure.Identity" Version="1.21.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.10.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Certificates" Version="4.9.0" />
     <!--
       NuGet's own client libraries do the .nupkg work: package hashing and the zip
       surgery that adds .signature.p7s are theirs, and they are the format's reference

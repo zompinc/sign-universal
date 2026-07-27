@@ -41,6 +41,8 @@ internal static class Program
 
             sign key sources (pick one):
               --pfx <path> [--password <pw>]        A local PKCS#12 file.
+              --key-vault-url <uri>                 Azure Key Vault. Also needs
+                --key-vault-certificate <name>      --key-vault-certificate.
               --trusted-signing-endpoint <url>      Azure Trusted Signing. Also needs
                 --trusted-signing-account <name>    --trusted-signing-account and
                 --trusted-signing-certificate-profile <name>.
@@ -83,6 +85,8 @@ internal static class Program
         string? endpoint = null;
         string? account = null;
         string? certificateProfile = null;
+        string? keyVaultUrl = null;
+        string? keyVaultCertificate = null;
         string? timestamper = null;
         string hashName = "sha256";
         bool selfSigned = false;
@@ -108,6 +112,12 @@ internal static class Program
                     break;
                 case "--trusted-signing-certificate-profile":
                     if (!TryTakeValue(args, ref i, out certificateProfile)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--key-vault-url":
+                    if (!TryTakeValue(args, ref i, out keyVaultUrl)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--key-vault-certificate":
+                    if (!TryTakeValue(args, ref i, out keyVaultCertificate)) return UsageError($"'{argument}' needs a value.");
                     break;
                 case "--timestamper":
                     if (!TryTakeValue(args, ref i, out timestamper)) return UsageError($"'{argument}' needs a value.");
@@ -147,10 +157,18 @@ internal static class Program
                 "and --trusted-signing-certificate-profile.");
         }
 
-        int keySources = (selfSigned ? 1 : 0) + (pfxPath is not null ? 1 : 0) + (trustedSigning ? 1 : 0);
+        bool keyVault = keyVaultUrl is not null || keyVaultCertificate is not null;
+        if (keyVault && (keyVaultUrl is null || keyVaultCertificate is null))
+        {
+            return UsageError("Key Vault needs both --key-vault-url and --key-vault-certificate.");
+        }
+
+        int keySources = (selfSigned ? 1 : 0) + (pfxPath is not null ? 1 : 0)
+            + (trustedSigning ? 1 : 0) + (keyVault ? 1 : 0);
         if (keySources != 1)
         {
-            return UsageError("Specify exactly one key source: --pfx, --trusted-signing-*, or --self-signed.");
+            return UsageError(
+                "Specify exactly one key source: --pfx, --key-vault-*, --trusted-signing-*, or --self-signed.");
         }
 
         HashAlgorithmName hashAlgorithm;
@@ -192,6 +210,12 @@ internal static class Program
                 PfxRemoteSigner pfxSigner = new(pfxPath, password);
                 signer = pfxSigner;
                 owned = pfxSigner;
+            }
+            else if (keyVault)
+            {
+                KeyVaultRemoteSigner vault = new(new Uri(keyVaultUrl!), keyVaultCertificate!);
+                signer = vault;
+                owned = vault;
             }
             else
             {
