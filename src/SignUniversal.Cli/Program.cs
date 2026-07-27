@@ -42,7 +42,11 @@ internal static class Program
               sign-universal --help       Show this help.
 
             sign key sources (pick one):
-              --pfx <path> [--password <pw>]        A local PKCS#12 file.
+              --pfx <path>                          A local PKCS#12 file. Its password
+                                                    comes from SIGNUNIVERSAL_PFX_PASSWORD,
+                                                    or --password-stdin, or --password
+                                                    (which is visible in `ps` and shell
+                                                    history — prefer the others).
               --key-vault-url <uri>                 Azure Key Vault. Also needs
                 --key-vault-certificate <name>      --key-vault-certificate.
               --trusted-signing-endpoint <url>      Azure Trusted Signing. Also needs
@@ -79,11 +83,15 @@ internal static class Program
         return 0;
     }
 
+    /// <summary>Environment variable consulted when no password is passed on the command line.</summary>
+    private const string PfxPasswordVariable = "SIGNUNIVERSAL_PFX_PASSWORD";
+
     private static async Task<int> RunSign(string[] args)
     {
         List<string> files = [];
         string? pfxPath = null;
         string? password = null;
+        bool passwordFromStdin = false;
         string? endpoint = null;
         string? account = null;
         string? certificateProfile = null;
@@ -105,6 +113,9 @@ internal static class Program
                     break;
                 case "--password":
                     if (!TryTakeValue(args, ref i, out password)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--password-stdin":
+                    passwordFromStdin = true;
                     break;
                 case "--trusted-signing-endpoint":
                     if (!TryTakeValue(args, ref i, out endpoint)) return UsageError($"'{argument}' needs a value.");
@@ -158,6 +169,20 @@ internal static class Program
                 "Trusted Signing needs all of --trusted-signing-endpoint, --trusted-signing-account, " +
                 "and --trusted-signing-certificate-profile.");
         }
+
+        if (passwordFromStdin)
+        {
+            if (password is not null)
+            {
+                return UsageError("Specify either --password or --password-stdin, not both.");
+            }
+
+            password = Console.In.ReadLine();
+        }
+
+        // A password on the command line is visible to anyone who can run `ps`, and lands
+        // in shell history. The environment variable is the quiet default for CI.
+        password ??= Environment.GetEnvironmentVariable(PfxPasswordVariable);
 
         bool keyVault = keyVaultUrl is not null || keyVaultCertificate is not null;
         if (keyVault && (keyVaultUrl is null || keyVaultCertificate is null))
