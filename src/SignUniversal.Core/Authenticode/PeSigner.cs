@@ -41,6 +41,12 @@ public static class PeSigner
     /// <param name="hashAlgorithm">The digest algorithm.</param>
     /// <param name="timestampUrl">The RFC 3161 authority, or <see langword="null"/> to skip timestamping.</param>
     /// <returns>The Authenticode digest that was signed.</returns>
+    /// <remarks>
+    /// Signing happens on a copy that replaces the original only on success. Preparing an
+    /// image strips whatever signature it already had, so signing in place would mean that
+    /// an expired key, a lost network, or a rejected credential leaves behind a file whose
+    /// old signature is gone and whose new one was never written.
+    /// </remarks>
     public static byte[] SignFile(
         string path,
         IRemoteSigner signer,
@@ -49,7 +55,27 @@ public static class PeSigner
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
 
-        using FileStream stream = new(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-        return Sign(stream, signer, hashAlgorithm, timestampUrl);
+        string temporaryPath = path + ".signing";
+
+        try
+        {
+            File.Copy(path, temporaryPath, overwrite: true);
+
+            byte[] digest;
+            using (FileStream stream = new(temporaryPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                digest = Sign(stream, signer, hashAlgorithm, timestampUrl);
+            }
+
+            File.Move(temporaryPath, path, overwrite: true);
+            return digest;
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
     }
 }
