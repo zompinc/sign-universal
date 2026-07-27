@@ -88,6 +88,52 @@ public sealed class AuthenticodeContentTests
             .Should().Be("300c060a2b060104018237020115");
     }
 
+    [Test]
+    public void SignedData_MatchesTheStructureWindowsExpects()
+    {
+        // Every field checked here is one Windows rejected outright with
+        // "Not a cryptographic message or the cryptographic message is not formatted
+        // correctly" (CRYPT_E_BAD_MSG). .NET follows the modern RFCs; Authenticode predates
+        // them, and none of this is visible to any check that runs off Windows.
+        (byte[] signedData, _) = SignPeImage();
+
+        Asn1Tag explicitContent = new(TagClass.ContextSpecific, 0, isConstructed: true);
+        AsnReader contentInfo = new AsnReader(signedData, AsnEncodingRules.BER).ReadSequence();
+        contentInfo.ReadObjectIdentifier();
+        AsnReader signedDataReader = contentInfo.ReadSequence(explicitContent).ReadSequence();
+
+        // RFC 5652 asks for version 3 when the content type is not id-data.
+        signedDataReader.ReadInteger().Should().Be(1, "Authenticode expects SignedData version 1");
+
+        AsnReader digestAlgorithms = signedDataReader.ReadSetOf();
+        while (digestAlgorithms.HasData)
+        {
+            AssertHasNullParameters(digestAlgorithms.ReadSequence(), "digestAlgorithms");
+        }
+
+        signedDataReader.ReadEncodedValue();    // encapContentInfo
+        while (signedDataReader.PeekTag().TagClass == TagClass.ContextSpecific)
+        {
+            signedDataReader.ReadEncodedValue();    // certificates, crls
+        }
+
+        AsnReader signerInfos = signedDataReader.ReadSetOf();
+        AsnReader signerInfo = signerInfos.ReadSequence();
+        signerInfo.ReadEncodedValue();          // version
+        signerInfo.ReadEncodedValue();          // sid
+        AssertHasNullParameters(signerInfo.ReadSequence(), "signerInfo.digestAlgorithm");
+        signerInfo.ReadEncodedValue();          // signedAttrs
+        AssertHasNullParameters(signerInfo.ReadSequence(), "signerInfo.signatureAlgorithm");
+    }
+
+    private static void AssertHasNullParameters(AsnReader algorithmIdentifier, string which)
+    {
+        algorithmIdentifier.ReadObjectIdentifier();
+        algorithmIdentifier.HasData.Should().BeTrue(
+            "{0} must carry explicit NULL parameters; .NET omits them and Windows rejects the message", which);
+        algorithmIdentifier.ReadNull();
+    }
+
     private static (byte[] SignedData, byte[] Digest) SignPeImage()
     {
         using MemoryStream image = new();
