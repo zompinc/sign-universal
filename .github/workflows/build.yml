@@ -118,10 +118,12 @@ jobs:
 
       - name: Push to nuget.org
         env:
-          NUGET_API_KEY: ${{ secrets.ZOMP_NUGET_API_KEY }}
-        if: ${{ env.NUGET_API_KEY != '' }}
+          # Organization-level secret, shared with the other Zomp repos that publish.
+          # Guarded so a fork, which cannot see it, skips the step instead of failing.
+          NUGET_PUSH_KEY: ${{ secrets.NUGET_PUSH_KEY }}
+        if: ${{ env.NUGET_PUSH_KEY != '' }}
         run: |
           dotnet nuget push "artifacts/*.nupkg" \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "$NUGET_PUSH_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
