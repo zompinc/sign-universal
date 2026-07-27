@@ -1,14 +1,17 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using NuGet.Packaging.Signing;
 using SignUniversal.Core.Authenticode;
+using SignUniversal.Core.Packaging;
 using SignUniversal.Core.Signing;
+using SignUniversal.Core.Signing.Azure;
 
 namespace SignUniversal.Cli;
 
 internal static class Program
 {
-    internal static int Main(string[] args)
+    internal static async Task<int> Main(string[] args)
     {
         string command = args.Length > 0 ? args[0] : "--help";
 
@@ -16,7 +19,7 @@ internal static class Program
         {
             "--version" => PrintVersion(),
             "self-test" => RunSelfTest(),
-            "sign" => RunSign(args),
+            "sign" => await RunSign(args).ConfigureAwait(false),
             _ => PrintHelp(),
         };
     }
@@ -30,18 +33,31 @@ internal static class Program
 
             Usage:
               sign-universal self-test    Verify the remote-key -> SignedCms pipeline on this OS.
-              sign-universal sign <file>  Sign a Windows PE image (.exe/.dll) in place.
+              sign-universal sign <files>  Sign PE images (.exe/.dll) and/or NuGet
+                                           packages (.nupkg). Globs work: one signing
+                                           session covers every file.
               sign-universal --version    Show version.
               sign-universal --help       Show this help.
 
-            sign options:
-              --pfx <path>       PKCS#12 file holding the signing certificate and key.
-              --password <pw>    Password for the PKCS#12 file.
-              --self-signed      Sign with a throwaway self-signed certificate (smoke tests only).
-              --hash <algorithm> Digest algorithm: sha256 (default), sha384, or sha512.
+            sign key sources (pick one):
+              --pfx <path> [--password <pw>]        A local PKCS#12 file.
+              --trusted-signing-endpoint <url>      Azure Trusted Signing. Also needs
+                --trusted-signing-account <name>    --trusted-signing-account and
+                --trusted-signing-certificate-profile <name>.
+                Credentials come from AZURE_TENANT_ID / AZURE_CLIENT_ID /
+                AZURE_CLIENT_SECRET, as DefaultAzureCredential reads them.
+              --self-signed                         Throwaway certificate, smoke tests only.
 
-            Azure Key Vault and Trusted Signing backends land in the Azure milestone;
-            MSI support lands in the MSI milestone.
+            sign options:
+              --hash <algorithm>  Digest algorithm: sha256 (default), sha384, or sha512.
+              --timestamper <url> RFC 3161 authority for .nupkg. Defaults to
+                                  http://timestamp.digicert.com. Microsoft's
+                                  timestamp.acs.microsoft.com does not chain on a stock
+                                  Linux agent — see the README.
+              --no-timestamp      Skip timestamping (.nupkg). Trusted Signing certificates
+                                  expire in days, so the signature will too.
+
+            Azure Key Vault lands in a later milestone, as does MSI support.
             """);
         return 0;
     }
@@ -55,13 +71,18 @@ internal static class Program
         return 0;
     }
 
-    private static int RunSign(string[] args)
+    private static async Task<int> RunSign(string[] args)
     {
-        string? file = null;
+        List<string> files = [];
         string? pfxPath = null;
         string? password = null;
+        string? endpoint = null;
+        string? account = null;
+        string? certificateProfile = null;
+        string? timestamper = null;
         string hashName = "sha256";
         bool selfSigned = false;
+        bool noTimestamp = false;
 
         for (int i = 1; i < args.Length; i++)
         {
@@ -74,28 +95,54 @@ internal static class Program
                 case "--password":
                     if (!TryTakeValue(args, ref i, out password)) return UsageError($"'{argument}' needs a value.");
                     break;
+                case "--trusted-signing-endpoint":
+                    if (!TryTakeValue(args, ref i, out endpoint)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--trusted-signing-account":
+                    if (!TryTakeValue(args, ref i, out account)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--trusted-signing-certificate-profile":
+                    if (!TryTakeValue(args, ref i, out certificateProfile)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--timestamper":
+                    if (!TryTakeValue(args, ref i, out timestamper)) return UsageError($"'{argument}' needs a value.");
+                    break;
                 case "--hash":
                     if (!TryTakeValue(args, ref i, out string? hash)) return UsageError($"'{argument}' needs a value.");
                     hashName = hash;
+                    break;
+                case "--no-timestamp":
+                    noTimestamp = true;
                     break;
                 case "--self-signed":
                     selfSigned = true;
                     break;
                 default:
                     if (argument.StartsWith('-')) return UsageError($"Unknown option '{argument}'.");
-                    if (file is not null) return UsageError("Specify exactly one file to sign.");
-                    file = argument;
+                    files.Add(argument);
                     break;
             }
         }
 
-        if (file is null) return UsageError("Specify the file to sign.");
-        if (!File.Exists(file)) return UsageError($"File not found: {file}");
-        if (selfSigned == (pfxPath is not null)) return UsageError("Specify exactly one of --pfx or --self-signed.");
+        if (files.Count == 0) return UsageError("Specify at least one file to sign.");
 
-        if (string.Equals(Path.GetExtension(file), ".msi", StringComparison.OrdinalIgnoreCase))
+        foreach (string candidate in files.Where(candidate => !File.Exists(candidate)))
         {
-            return UsageError("MSI signing is not implemented yet; only PE images (.exe/.dll) are supported.");
+            return UsageError($"File not found: {candidate}");
+        }
+
+        bool trustedSigning = endpoint is not null || account is not null || certificateProfile is not null;
+        if (trustedSigning && (endpoint is null || account is null || certificateProfile is null))
+        {
+            return UsageError(
+                "Trusted Signing needs all of --trusted-signing-endpoint, --trusted-signing-account, " +
+                "and --trusted-signing-certificate-profile.");
+        }
+
+        int keySources = (selfSigned ? 1 : 0) + (pfxPath is not null ? 1 : 0) + (trustedSigning ? 1 : 0);
+        if (keySources != 1)
+        {
+            return UsageError("Specify exactly one key source: --pfx, --trusted-signing-*, or --self-signed.");
         }
 
         HashAlgorithmName hashAlgorithm;
@@ -107,6 +154,17 @@ internal static class Program
             default: return UsageError($"Unsupported hash algorithm '{hashName}'; use sha256, sha384, or sha512.");
         }
 
+        if (files.Any(candidate => string.Equals(Path.GetExtension(candidate), ".msi", StringComparison.OrdinalIgnoreCase)))
+        {
+            return UsageError("MSI signing is not implemented yet; PE images (.exe/.dll) and .nupkg are supported.");
+        }
+
+        bool anyPeImage = files.Any(candidate => !IsPackage(candidate));
+        if (anyPeImage && (timestamper is not null || noTimestamp))
+        {
+            return UsageError("Timestamping is only wired up for .nupkg so far; PE timestamping is still on the roadmap.");
+        }
+
         if (selfSigned)
         {
             Console.Error.WriteLine(
@@ -116,25 +174,89 @@ internal static class Program
 
         try
         {
-            // Loading the key can fail too (wrong password, no RSA key), so it happens
-            // inside the same guard as the signing itself.
-            using EphemeralRemoteSigner? ephemeral = selfSigned ? new EphemeralRemoteSigner() : null;
-            using PfxRemoteSigner? pfxSigner = pfxPath is null ? null : new PfxRemoteSigner(pfxPath, password);
-            IRemoteSigner signer = (IRemoteSigner?)ephemeral ?? pfxSigner!;
+            IRemoteSigner signer;
+            IDisposable owned;
 
-            byte[] digest = PeSigner.SignFile(file, signer, hashAlgorithm);
-            Console.WriteLine($"Signed {file}");
-            Console.WriteLine($"  digest ({hashAlgorithm.Name}): {Convert.ToHexString(digest)}");
-            Console.WriteLine($"  certificate:      {signer.Certificate.Subject}");
+            if (selfSigned)
+            {
+                EphemeralRemoteSigner ephemeral = new();
+                signer = ephemeral;
+                owned = ephemeral;
+            }
+            else if (pfxPath is not null)
+            {
+                PfxRemoteSigner pfxSigner = new(pfxPath, password);
+                signer = pfxSigner;
+                owned = pfxSigner;
+            }
+            else
+            {
+                TrustedSigningRemoteSigner trusted = new(new Uri(endpoint!), account!, certificateProfile!);
+                signer = trusted;
+                owned = trusted;
+            }
+
+            // One signing session covers every file. That matters for Trusted Signing,
+            // where opening a session mints a certificate and costs a round trip.
+            using (owned)
+            {
+                Console.WriteLine($"Certificate: {signer.Certificate.Subject}");
+
+                foreach (string target in files)
+                {
+                    if (IsPackage(target))
+                    {
+                        await SignPackage(target, signer, hashAlgorithm, timestamper, noTimestamp).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        byte[] digest = PeSigner.SignFile(target, signer, hashAlgorithm);
+                        Console.WriteLine($"Signed {target}");
+                        Console.WriteLine($"  digest ({hashAlgorithm.Name}): {Convert.ToHexString(digest)}");
+                    }
+                }
+            }
+
             return 0;
         }
         catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or InvalidOperationException
-            or IOException or UnauthorizedAccessException or CryptographicException)
+            or IOException or UnauthorizedAccessException or CryptographicException or UriFormatException
+            or SignatureException or TimestampException)
         {
             Console.Error.WriteLine($"error: {ex.Message}");
             return 1;
         }
     }
+
+    private static async Task SignPackage(
+        string file,
+        IRemoteSigner signer,
+        HashAlgorithmName hashAlgorithm,
+        string? timestamper,
+        bool noTimestamp)
+    {
+        // Trusted Signing certificates live about three days, so an untimestamped
+        // signature is close to worthless. Timestamping is the default; opting out is
+        // explicit and noisy.
+        Uri? timestampUrl = noTimestamp
+            ? null
+            : new Uri(timestamper ?? NuGetPackageSigner.DefaultTimestampUrl);
+
+        if (timestampUrl is null)
+        {
+            Console.Error.WriteLine(
+                "WARNING: --no-timestamp means this signature expires with the signing certificate.");
+        }
+
+        await NuGetPackageSigner.SignFileAsync(file, signer, hashAlgorithm, timestampUrl).ConfigureAwait(false);
+
+        Console.WriteLine($"Signed {file}");
+        Console.WriteLine($"  signature: author, {hashAlgorithm.Name}");
+        Console.WriteLine($"  timestamp: {timestampUrl?.ToString() ?? "none"}");
+    }
+
+    private static bool IsPackage(string path) =>
+        string.Equals(Path.GetExtension(path), ".nupkg", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryTakeValue(string[] args, ref int index, out string value)
     {

@@ -49,6 +49,29 @@ the spec. They look like quirks; they are load-bearing.
    `SizeOfHeaders` gives the same answer for ordinary compiler output and the wrong one
    otherwise.
 
+## NuGet packages: reuse, don't reimplement
+
+The `.nupkg` path deliberately looks nothing like the Authenticode one. NuGet's client
+libraries are cross-platform and are the format's reference implementation, so they do
+the package hashing and the zip surgery; we supply only the CMS signature. Resist the
+urge to hand-roll any of it.
+
+1. **`SigningUtility.CreateCmsSigner` then `cmsSigner.PrivateKey = remoteRsa`.** NuGet
+   builds the signer — identifier type, signed attributes, chain, digest algorithm — and
+   we swap in the remote key. Building the `CmsSigner` ourselves would silently drift
+   from whatever NuGet decides is correct.
+1. **`SignPackageRequest.Dispose()` disposes the certificate you hand it.** Pass a copy,
+   or the backend's certificate dies after one package and signing a directory fails on
+   the second file.
+1. **The timestamp is taken over the *hash* of the signature value**, not the signature
+   value itself. Passing the raw value gets a bare HTTP 400 from the authority.
+1. **`timestamp.acs.microsoft.com` does not work on a stock Linux agent.** Its responses
+   omit the root, and *Microsoft Identity Verification Root CA 2020* is not in Ubuntu's
+   trust store, so the chain cannot be built. The default is DigiCert for that reason.
+1. **Use `Azure.Developer.TrustedSigning.CryptoProvider`, never
+   `Microsoft.Trusted.Signing.Client`** — the latter ships a native signtool Dlib
+   (MFC/MSVC) and is the reason `dotnet sign ... trusted-signing` cannot run on Linux.
+
 ## Build & prove
 
 ```bash

@@ -19,6 +19,18 @@
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="8.*" />
     <PackageVersion Include="Azure.Identity" Version="1.*" />
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.*" />
+    <!--
+      NuGet's own client libraries do the .nupkg work: package hashing and the zip
+      surgery that adds .signature.p7s are theirs, and they are the format's reference
+      implementation. We supply only the CMS signature, from a remote key.
+    -->
+    <PackageVersion Include="NuGet.Packaging" Version="6.*" />
+    <!--
+      Trusted Signing over plain HTTPS. Note this is NOT Microsoft.Trusted.Signing.Client,
+      which ships a native signtool Dlib (MFC/MSVC) and is therefore Windows-only — the
+      reason `dotnet sign ... trusted-signing` cannot run on Linux at all.
+    -->
+    <PackageVersion Include="Azure.Developer.TrustedSigning.CryptoProvider" Version="0.1.*" />
     <!-- MSI = OLE Compound File; used once the MSI path is implemented. -->
     <PackageVersion Include="OpenMcdf" Version="2.*" />
   </ItemGroup>
