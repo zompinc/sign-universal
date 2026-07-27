@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A minimal but genuine MSI, built in CI so signtool has something real to judge.
+  A hand-built compound file would not do: it would be rejected for not being a valid
+  installer database, which tells us nothing about our signature. The component uses a
+  registry key as its keypath so the package needs no payload file.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*"
+           Name="sign-universal test package"
+           Language="1033"
+           Version="1.0.0.0"
+           Manufacturer="Zomp Inc."
+           UpgradeCode="6F2B9E51-4E24-4C0E-9E0A-9E6C1F0B2D77">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+    <MediaTemplate />
+
+    <Directory Id="TARGETDIR" Name="SourceDir" />
+
+    <ComponentGroup Id="ProductComponents" Directory="TARGETDIR">
+      <Component Id="MarkerComponent" Guid="*">
+        <RegistryValue Root="HKLM"
+                       Key="Software\Zomp\SignUniversalTest"
+                       Name="Installed"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="ProductFeature" Title="sign-universal test package" Level="1">
+      <ComponentRef Id="MarkerComponent" />
+    </Feature>
+  </Product>
+</Wix>
