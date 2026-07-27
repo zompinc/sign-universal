@@ -1,0 +1,33 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <!-- Floating versions during bootstrap; pin to exact versions before v1. -->
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
+  </PropertyGroup>
+
+  <!-- Build / versioning / analyzers (build-only, PrivateAssets=all at the reference site) -->
+  <ItemGroup>
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.*" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.*" />
+    <PackageVersion Include="StyleCop.Analyzers.Unstable" Version="1.2.0.*" />
+  </ItemGroup>
+
+  <!-- Runtime dependencies for the signing engine (referenced as the port progresses) -->
+  <ItemGroup>
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="8.*" />
+    <PackageVersion Include="Azure.Identity" Version="1.*" />
+    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.*" />
+    <!-- MSI = OLE Compound File; used once the MSI path is implemented. -->
+    <PackageVersion Include="OpenMcdf" Version="2.*" />
+  </ItemGroup>
+
+  <!-- Test stack: TUnit + NSubstitute + FluentAssertions (v7 = last Apache-2.0 line) -->
+  <ItemGroup>
+    <PackageVersion Include="TUnit" Version="0.*" />
+    <PackageVersion Include="NSubstitute" Version="5.*" />
+    <PackageVersion Include="FluentAssertions" Version="[7.2.0,8.0.0)" />
+  </ItemGroup>
+
+</Project>

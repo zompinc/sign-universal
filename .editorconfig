@@ -1,0 +1,52 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_size = 4
+dotnet_sort_system_directives_first = true
+
+# --- StyleCop: ceremony rules relaxed during bootstrap (documented, per Zomp convention) ---
+# XML-comment analysis off (we do not generate a documentation file during bootstrap).
+dotnet_diagnostic.SA0001.severity = none
+# File headers are unnecessary while the license is at the repo root.
+dotnet_diagnostic.SA1633.severity = none
+# Full XML documentation is not required for internal/bootstrap surface yet.
+dotnet_diagnostic.SA1600.severity = none
+dotnet_diagnostic.SA1601.severity = none
+dotnet_diagnostic.SA1602.severity = none
+# We prefer usings outside the namespace and no explicit `this.` prefix.
+dotnet_diagnostic.SA1200.severity = none
+dotnet_diagnostic.SA1101.severity = none
+# Private fields use a leading underscore (_field) — the .NET runtime style.
+dotnet_diagnostic.SA1309.severity = none
+# Underscore-prefixed fields collide with SA1311/naming; keep them quiet.
+dotnet_diagnostic.SA1310.severity = none
+# Do not require trailing commas / specific element ordering during bootstrap.
+dotnet_diagnostic.SA1413.severity = none
+dotnet_diagnostic.SA1201.severity = none
+dotnet_diagnostic.SA1202.severity = none
+dotnet_diagnostic.SA1204.severity = none
+# Single-line blocks / brace preferences left to the developer for now.
+dotnet_diagnostic.SA1503.severity = none
+dotnet_diagnostic.SA1512.severity = none
+dotnet_diagnostic.SA1515.severity = none
+dotnet_diagnostic.SA1516.severity = none
+
+# --- Naming: allow the runtime-style leading underscore for private fields ---
+dotnet_naming_rule.private_fields_underscore.severity = suggestion
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_prefix
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_prefix.capitalization = camel_case
+dotnet_naming_style.underscore_prefix.required_prefix = _
+
+# --- Test projects: allow Method_Scenario_Expectation naming ---
+[test/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none

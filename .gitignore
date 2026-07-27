@@ -1,0 +1,27 @@
+# Build output
+bin/
+obj/
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+
+# NuGet
+*.nupkg
+.packages/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test / signing scratch
+TestResults/
+*.trx
+*.snk
+*.pfx
+signtool-verify/

@@ -1,0 +1,16 @@
+sign-universal
+Copyright (c) Zomp Inc.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------------
+
+This product's design and Authenticode format handling are informed by jsign, an
+Apache-2.0 licensed project:
+
+  jsign — https://github.com/ebourg/jsign
+  Copyright (c) Emmanuel Bourg and contributors
+  Licensed under the Apache License, Version 2.0
+
+Any code ported or adapted from jsign retains its Apache-2.0 licensing and
+attribution. See NOTICE entries added alongside such code.
