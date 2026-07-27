@@ -13,6 +13,9 @@ public static class AuthenticodeOids
     /// <summary>SPC_PE_IMAGE_DATAOBJ — identifies the signed subject as a PE image.</summary>
     public const string SpcPeImageDataObjId = "1.3.6.1.4.1.311.2.1.15";
 
+    /// <summary>SPC_SIPINFO_OBJID — identifies the signed subject by its SIP, as MSI does.</summary>
+    public const string SpcSipInfoObjId = "1.3.6.1.4.1.311.2.1.30";
+
     /// <summary>SPC_STATEMENT_TYPE_OBJID — the signed attribute naming the purpose of the signature.</summary>
     public const string SpcStatementTypeObjId = "1.3.6.1.4.1.311.2.1.11";
 

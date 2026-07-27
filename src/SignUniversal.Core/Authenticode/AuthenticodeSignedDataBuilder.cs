@@ -32,17 +32,26 @@ public static class AuthenticodeSignedDataBuilder
     /// signature untimestamped — in which case it expires with the certificate.
     /// </param>
     /// <param name="timestampTimeout">How long to wait on the authority.</param>
+    /// <param name="subject">What kind of file the digest describes.</param>
     /// <returns>The encoded PKCS#7 SignedData.</returns>
     public static byte[] Build(
         IRemoteSigner signer,
         ReadOnlySpan<byte> authenticodeDigest,
         HashAlgorithmName hashAlgorithm,
         Uri? timestampUrl = null,
-        TimeSpan? timestampTimeout = null)
+        TimeSpan? timestampTimeout = null,
+        SignedSubject subject = SignedSubject.PeImage)
     {
         ArgumentNullException.ThrowIfNull(signer);
 
-        byte[] spcContent = SpcIndirectData.EncodeForPeImage(authenticodeDigest, hashAlgorithm);
+        // The two subjects differ only in how they name themselves: a PE image carries
+        // SpcPeImageData, an MSI carries SpcSipInfo. Everything below is identical.
+        byte[] spcContent = subject switch
+        {
+            SignedSubject.PeImage => SpcIndirectData.EncodeForPeImage(authenticodeDigest, hashAlgorithm),
+            SignedSubject.Msi => SpcIndirectData.EncodeForMsi(authenticodeDigest, hashAlgorithm),
+            _ => throw new ArgumentOutOfRangeException(nameof(subject)),
+        };
 
         // Authenticode's messageDigest attribute covers the *value octets* of
         // SpcIndirectDataContent, not its whole TLV — the encapsulated content is this

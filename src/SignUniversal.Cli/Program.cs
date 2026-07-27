@@ -5,6 +5,7 @@ using Azure;
 using Azure.Identity;
 using NuGet.Packaging.Signing;
 using SignUniversal.Core.Authenticode;
+using SignUniversal.Core.Msi;
 using SignUniversal.Core.Packaging;
 using SignUniversal.Core.Signing;
 using SignUniversal.Core.Signing.Azure;
@@ -35,9 +36,9 @@ internal static class Program
 
             Usage:
               sign-universal self-test    Verify the remote-key -> SignedCms pipeline on this OS.
-              sign-universal sign <files>  Sign PE images (.exe/.dll) and/or NuGet
-                                           packages (.nupkg). Globs work: one signing
-                                           session covers every file.
+              sign-universal sign <files>  Sign PE images (.exe/.dll), MSI packages
+                                           (.msi), and NuGet packages (.nupkg). Globs
+                                           work: one signing session covers every file.
               sign-universal --version    Show version.
               sign-universal --help       Show this help.
 
@@ -69,7 +70,7 @@ internal static class Program
                                   signing otherwise fails with "Certificate chain
                                   validation failed" — see the README.
 
-            Azure Key Vault lands in a later milestone, as does MSI support.
+            Every format is timestamped by default.
             """);
         return 0;
     }
@@ -207,12 +208,7 @@ internal static class Program
             default: return UsageError($"Unsupported hash algorithm '{hashName}'; use sha256, sha384, or sha512.");
         }
 
-        if (files.Any(candidate => string.Equals(Path.GetExtension(candidate), ".msi", StringComparison.OrdinalIgnoreCase)))
-        {
-            return UsageError("MSI signing is not implemented yet; PE images (.exe/.dll) and .nupkg are supported.");
-        }
-
-        bool anyPeImage = files.Any(candidate => !IsPackage(candidate));
+        bool anyPeImage = files.Any(candidate => !IsPackage(candidate) && !IsMsi(candidate));
 
         if (selfSigned)
         {
@@ -273,6 +269,14 @@ internal static class Program
                     {
                         await SignPackage(target, signer, hashAlgorithm, timestamper, noTimestamp).ConfigureAwait(false);
                     }
+                    else if (IsMsi(target))
+                    {
+                        Uri? timestampUrl = ResolveTimestampUrl(timestamper, noTimestamp);
+                        byte[] digest = MsiSigner.SignFile(target, signer, hashAlgorithm, timestampUrl);
+                        Console.WriteLine($"Signed {target}");
+                        Console.WriteLine($"  digest ({hashAlgorithm.Name}): {Convert.ToHexString(digest)}");
+                        Console.WriteLine($"  timestamp: {timestampUrl?.ToString() ?? "none"}");
+                    }
                     else
                     {
                         Uri? timestampUrl = ResolveTimestampUrl(timestamper, noTimestamp);
@@ -329,6 +333,9 @@ internal static class Program
             "WARNING: --no-timestamp means this signature stops validating when the signing " +
             $"certificate expires — {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
     }
+
+    private static bool IsMsi(string path) =>
+        string.Equals(Path.GetExtension(path), ".msi", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsPackage(string path)
     {
