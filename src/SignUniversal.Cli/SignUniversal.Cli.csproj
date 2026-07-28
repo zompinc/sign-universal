@@ -7,7 +7,9 @@
 
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>sign-universal</ToolCommandName>
-    <PackageId>SignUniversal.Cli</PackageId>
+    <!-- The tool is the only thing that ships, so no .Cli suffix: there is no library
+         beside it to distinguish it from. -->
+    <PackageId>SignUniversal</PackageId>
     <Title>sign-universal</Title>
     <Description>Cross-platform code signing from Linux, macOS, or Windows with the private key held in Azure Trusted Signing, where it never leaves the HSM. Author-signs NuGet packages and Authenticode-signs Windows PE binaries. Fills the gap between `dotnet sign`, which supports Trusted Signing but only runs on Windows, and `dotnet nuget sign`, which runs anywhere but requires a local private key.</Description>
     <PackageTags>signing;code-signing;authenticode;nuget;trusted-signing;azure;cross-platform;linux;ci</PackageTags>

@@ -40,7 +40,7 @@ Two findings the spike locked in:
 ## Install
 
 ```bash
-dotnet tool install --global SignUniversal.Cli
+dotnet tool install --global SignUniversal
 sign-universal --version
 ```
 
@@ -49,7 +49,7 @@ only a later runtime is fine.
 
 > Nothing is on nuget.org yet. Until the first release, build it locally with
 > `dotnet pack src/SignUniversal.Cli -c Release -o artifacts` and
-> `dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli`.
+> `dotnet tool install --global --add-source artifacts --prerelease SignUniversal`.
 
 ## Key sources
 
@@ -251,7 +251,7 @@ certificate chain embedded, RFC 3161 timestamp attached, exit code 0.
 
 ```
 src/SignUniversal.Core    signing engine (BCL-only today)
-src/SignUniversal.Cli     dotnet tool (`sign-universal`)
+src/SignUniversal.Cli     dotnet tool, published as `SignUniversal` (`sign-universal`)
 test/SignUniversal.Core.Tests
 ```
 
