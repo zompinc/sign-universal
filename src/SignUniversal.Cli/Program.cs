@@ -1,13 +1,11 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using Azure;
 using Azure.Identity;
 using NuGet.Packaging.Signing;
 using SignUniversal.Core.Authenticode;
 using SignUniversal.Core.Msi;
 using SignUniversal.Core.Packaging;
-using SignUniversal.Core.Signing;
 using SignUniversal.Core.Signing.Azure;
 
 namespace SignUniversal.Cli;
@@ -32,7 +30,7 @@ internal static class Program
     {
         Console.WriteLine(
             """
-            sign-universal — cross-platform code signing: NuGet packages and Windows PE
+            sign-universal - cross-platform code signing: NuGet packages and Windows PE
             binaries, with the key held in Azure Trusted Signing.
 
             Usage:
@@ -49,7 +47,7 @@ internal static class Program
                                                     comes from SIGNUNIVERSAL_PFX_PASSWORD,
                                                     or --password-stdin, or --password
                                                     (which is visible in `ps` and shell
-                                                    history — prefer the others).
+                                                    history - prefer the others).
               --key-vault-url <uri>                 Azure Key Vault. Also needs
                 --key-vault-certificate <name>      --key-vault-certificate.
               --trusted-signing-endpoint <url>      Azure Trusted Signing. Also needs
@@ -64,18 +62,18 @@ internal static class Program
               --timestamper <url> RFC 3161 authority. Defaults to
                                   http://timestamp.digicert.com. Microsoft's
                                   timestamp.acs.microsoft.com does not chain on a stock
-                                  Linux agent — see the README.
+                                  Linux agent - see the README.
               --no-timestamp      Skip timestamping. Trusted Signing certificates expire in
                                   days, and so will the signature.
               --trust-signing-root  Add the backend's root certificate to the current
                                   user's trust store. Needed on Linux agents, where
                                   signing otherwise fails with "Certificate chain
-                                  validation failed" — see the README.
+                                  validation failed" - see the README.
 
             Every format is timestamped by default.
 
             `verify` reports the signer, whether the signature covers the file, and the
-            timestamp. It does not decide trust — use `signtool verify /pa` or
+            timestamp. It does not decide trust - use `signtool verify /pa` or
             `dotnet nuget verify` for that.
             """);
         return 0;
@@ -326,7 +324,7 @@ internal static class Program
 
     /// <summary>
     /// Resolves the timestamp authority. Timestamping is the default because a signature
-    /// that is not timestamped dies with its certificate — in days, for Trusted Signing.
+    /// that is not timestamped dies with its certificate - in days, for Trusted Signing.
     /// </summary>
     private static Uri? ResolveTimestampUrl(string? timestamper, bool noTimestamp) =>
         noTimestamp ? null : new Uri(timestamper ?? AuthenticodeTimestamp.DefaultTimestampUrl);
@@ -337,7 +335,7 @@ internal static class Program
 
         Console.Error.WriteLine(
             "WARNING: --no-timestamp means this signature stops validating when the signing " +
-            $"certificate expires — {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
+            $"certificate expires - {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
     }
 
     private static bool IsMsi(string path) =>

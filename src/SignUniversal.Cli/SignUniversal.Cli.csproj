@@ -21,4 +21,14 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!--
+    Namespaces this project uses nearly everywhere, declared once instead of at the
+    top of every file. Kept to those referenced in more than a handful of files;
+    single-file usages stay local.
+  -->
+  <ItemGroup>
+    <Using Include="System.Security.Cryptography" />
+    <Using Include="SignUniversal.Core.Signing" />
+  </ItemGroup>
+
 </Project>

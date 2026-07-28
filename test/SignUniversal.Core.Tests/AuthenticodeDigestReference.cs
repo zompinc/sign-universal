@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Security.Cryptography;
 
 namespace SignUniversal.Core.Tests;
 
@@ -12,7 +11,7 @@ namespace SignUniversal.Core.Tests;
 /// <para>
 /// It shares no code with <see cref="SignUniversal.Core.Authenticode.PeFile"/> and is
 /// written for obviousness rather than efficiency: whole file in memory, no streaming, no
-/// reuse. That is the point — it exists to disagree with the engine when the engine is
+/// reuse. That is the point - it exists to disagree with the engine when the engine is
 /// wrong, and the engine's streaming walk is where a transcription slip would hide.
 /// </para>
 /// <para>

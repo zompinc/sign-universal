@@ -1,8 +1,3 @@
-using System.Security.Cryptography;
-using FluentAssertions;
-using SignUniversal.Core.Authenticode;
-using TUnit.Core;
-
 namespace SignUniversal.Core.Tests;
 
 /// <summary>
@@ -14,7 +9,7 @@ namespace SignUniversal.Core.Tests;
 /// implementation transcribed from the specification that shares no code with the engine.
 /// Its credibility rests on the corpus check below: pointed at a directory of
 /// already-signed binaries, it recomputes each digest and finds it inside that file's own
-/// signature — several hundred Microsoft-signed PE32 and PE32+ images, none mismatched.
+/// signature - several hundred Microsoft-signed PE32 and PE32+ images, none mismatched.
 /// </remarks>
 public sealed class PeDigestTests
 {
@@ -64,7 +59,7 @@ public sealed class PeDigestTests
     {
         // The oracle that settled the format questions in the first place: for an already
         // signed binary, the digest we compute must be the one sitting inside its own
-        // signature. Point it at any directory of signed PE files — a NuGet package cache
+        // signature. Point it at any directory of signed PE files - a NuGet package cache
         // will do.
         string? corpus = Environment.GetEnvironmentVariable("SIGNUNIVERSAL_PE_CORPUS");
         Skip.Unless(

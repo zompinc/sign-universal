@@ -4,7 +4,7 @@ namespace SignUniversal.Core.Tests;
 
 /// <summary>
 /// Builds minimal but structurally valid PE images, deterministically, so digest
-/// behaviour can be pinned down for layouts a compiler will not readily produce —
+/// behaviour can be pinned down for layouts a compiler will not readily produce -
 /// PE32+, and headers separated from the first section by alignment padding.
 /// </summary>
 internal static class SyntheticPe

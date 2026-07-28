@@ -12,7 +12,7 @@ internal sealed record NuGetVerifyResult(int ExitCode, string Output)
     public bool FoundAuthorSignature => Contains("Signature type: Author");
 
     /// <summary>
-    /// Gets a value indicating whether the signature itself is intact — that is, NuGet
+    /// Gets a value indicating whether the signature itself is intact - that is, NuGet
     /// raised no complaint about the signature or package contents, only about trust.
     /// </summary>
     /// <remarks>

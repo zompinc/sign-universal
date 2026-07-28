@@ -1,10 +1,5 @@
-using System.Security.Cryptography;
-using System.Security.Cryptography.Pkcs;
-using FluentAssertions;
 using OpenMcdf;
-using SignUniversal.Core.Authenticode;
 using SignUniversal.Core.Msi;
-using TUnit.Core;
 
 namespace SignUniversal.Core.Tests;
 
@@ -15,7 +10,7 @@ namespace SignUniversal.Core.Tests;
 /// <remarks>
 /// The synthetic package here is deterministic but small. The check that matters is
 /// <c>Digest_MatchesTheOne_InsideARealSignedPackage</c>, which needs an actual
-/// Microsoft-signed MSI and is opt-in through <c>SIGNUNIVERSAL_MSI_ORACLE</c> — the same
+/// Microsoft-signed MSI and is opt-in through <c>SIGNUNIVERSAL_MSI_ORACLE</c> - the same
 /// arrangement the PE corpus uses, and for the same reason: the algorithm was derived
 /// from that comparison, so it is the thing worth re-running.
 /// </remarks>
@@ -49,7 +44,7 @@ public sealed class MsiSigningTests
         byte[] encoded = SpcIndirectData.EncodeForMsi(digest, HashAlgorithmName.SHA256);
 
         // Byte for byte what a Microsoft-signed package carries: SpcSipInfo with version 2
-        // — not 1 — the MSI SIP GUID, and five zeroes.
+        // - not 1 - the MSI SIP GUID, and five zeroes.
         Convert.ToHexString(encoded).ToLowerInvariant().Should().Be(
             "30673032060a2b06010401823702011e30240201020410f1100c0000000000c000000000000046"
             + "02010002010002010002010002010030" + "31300d0609608648016503040201050004206"

@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using SignUniversal.Core.Authenticode;
 using SignUniversal.Core.Msi;
@@ -13,7 +12,7 @@ namespace SignUniversal.Cli;
 /// <para>
 /// This deliberately stops short of deciding whether a signature should be
 /// <em>trusted</em>. Trust is a question about certificate chains and local policy, and
-/// the platform tools already answer it well — <c>signtool verify /pa</c> on Windows,
+/// the platform tools already answer it well - <c>signtool verify /pa</c> on Windows,
 /// <c>dotnet nuget verify</c> for packages. Answering it a second time, differently,
 /// would be worse than not answering it.
 /// </para>
@@ -95,11 +94,11 @@ internal static class VerifyCommand
             bool covers = Convert.ToHexString(signature).Contains(
                 Convert.ToHexString(digest), StringComparison.OrdinalIgnoreCase);
 
-            Console.WriteLine($"  covers this file: {(covers ? "yes" : "NO — the file changed after signing, or uses another digest algorithm")}");
+            Console.WriteLine($"  covers this file: {(covers ? "yes" : "NO - the file changed after signing, or uses another digest algorithm")}");
 
             Rfc3161TimestampToken? timestamp = AuthenticodeTimestamp.TryGetTimestamp(cms);
             Console.WriteLine(timestamp is null
-                ? "  timestamp: none — the signature expires with the certificate"
+                ? "  timestamp: none - the signature expires with the certificate"
                 : $"  timestamp: {timestamp.TokenInfo.Timestamp:u}");
 
             return covers;

@@ -1,5 +1,4 @@
 using System.Buffers.Binary;
-using System.Security.Cryptography;
 using System.Text;
 using OpenMcdf;
 
@@ -13,9 +12,9 @@ namespace SignUniversal.Core.Msi;
 /// <para>
 /// An MSI is an OLE compound file, so unlike a PE image there is no offset arithmetic:
 /// the digest covers the streams themselves. The order is what matters, and it is not
-/// the order the streams appear in the file — they are sorted by the raw bytes of their
+/// the order the streams appear in the file - they are sorted by the raw bytes of their
 /// UTF-16LE names. That distinction is real, because MSI mangles table names into code
-/// points around U+3800–U+4800, where byte order and code-unit order disagree.
+/// points around U+3800-U+4800, where byte order and code-unit order disagree.
 /// </para>
 /// <para>
 /// The digest is: the <c>MsiDigitalSignatureEx</c> pre-hash if the package has one,
@@ -64,7 +63,7 @@ public static class MsiFile
     }
 
     /// <summary>
-    /// Computes the pre-hash over the package's metadata — what goes in the
+    /// Computes the pre-hash over the package's metadata - what goes in the
     /// <c>MsiDigitalSignatureEx</c> stream.
     /// </summary>
     /// <param name="compoundFile">The MSI file stream.</param>
@@ -80,7 +79,7 @@ public static class MsiFile
     /// <para>
     /// The layout was derived by reproducing the pre-hash signtool itself wrote for a
     /// package, then confirmed against a second, unrelated signed package. It reads the
-    /// directory entries directly because the fields it needs — state bits especially —
+    /// directory entries directly because the fields it needs - state bits especially -
     /// are not surfaced by the compound-file reader.
     /// </para>
     /// </remarks>

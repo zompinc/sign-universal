@@ -1,5 +1,4 @@
 using System.Security.Cryptography.X509Certificates;
-using SignUniversal.Core.Signing;
 
 namespace SignUniversal.Cli;
 
@@ -11,14 +10,14 @@ namespace SignUniversal.Cli;
 /// NuGet builds and validates the signing certificate's chain against the machine's
 /// trust store before it will sign, and an untrusted root is fatal. Trusted Signing
 /// issues from <c>Microsoft Identity Verification Root Certificate Authority 2020</c>,
-/// which Linux trust stores do not carry — so signing fails on an otherwise perfectly
+/// which Linux trust stores do not carry - so signing fails on an otherwise perfectly
 /// configured agent with nothing but "Certificate chain validation failed".
 /// </para>
 /// <para>
 /// The root is taken from the chain the signing service itself returned over an
 /// authenticated TLS connection, which is a far better provenance than downloading a
-/// CA certificate over plain HTTP. It goes into the current user's store only — never
-/// the machine's — and it is opt-in, because a signing tool that quietly adds trust
+/// CA certificate over plain HTTP. It goes into the current user's store only - never
+/// the machine's - and it is opt-in, because a signing tool that quietly adds trust
 /// roots would be a poor citizen.
 /// </para>
 /// </remarks>

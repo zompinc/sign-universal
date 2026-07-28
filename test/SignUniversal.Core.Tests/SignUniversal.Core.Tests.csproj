@@ -18,4 +18,17 @@
     <ProjectReference Include="..\..\src\SignUniversal.Core\SignUniversal.Core.csproj" />
   </ItemGroup>
 
+  <!--
+    Namespaces this project uses nearly everywhere, declared once instead of at the
+    top of every file. Kept to those referenced in more than a handful of files;
+    single-file usages stay local.
+  -->
+  <ItemGroup>
+    <Using Include="System.Security.Cryptography" />
+    <Using Include="System.Security.Cryptography.Pkcs" />
+    <Using Include="FluentAssertions" />
+    <Using Include="TUnit.Core" />
+    <Using Include="SignUniversal.Core.Authenticode" />
+  </ItemGroup>
+
 </Project>

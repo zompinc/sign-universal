@@ -1,10 +1,7 @@
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-
 namespace SignUniversal.Core.Signing;
 
 /// <summary>
-/// A signing backend whose private key lives remotely — Azure Key Vault, Azure
+/// A signing backend whose private key lives remotely - Azure Key Vault, Azure
 /// Trusted Signing, an HSM, a smart card, and so on.
 /// </summary>
 /// <remarks>
@@ -29,7 +26,7 @@ public interface IRemoteSigner
     /// <returns>The chain, or just the signing certificate when the backend has no more to offer.</returns>
     /// <remarks>
     /// Backends that mint short-lived certificates issue them from CAs a build agent has
-    /// never heard of, so the chain cannot be reconstructed locally — it has to come from
+    /// never heard of, so the chain cannot be reconstructed locally - it has to come from
     /// the backend. Signatures embed these certificates; without them a verifier has
     /// nothing to build a path from.
     /// </remarks>

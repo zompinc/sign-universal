@@ -1,6 +1,3 @@
-using System.Formats.Asn1;
-using System.Security.Cryptography;
-
 namespace SignUniversal.Core.Authenticode;
 
 /// <summary>
@@ -63,8 +60,8 @@ public static class SpcIndirectData
     /// <returns>The DER encoding of the structure.</returns>
     /// <remarks>
     /// An MSI names its subject with <c>SpcSipInfo</c> rather than the <c>SpcPeImageData</c>
-    /// a PE image uses. The shape is taken from Microsoft-signed packages: version 2 — not
-    /// 1, which is the obvious guess — the MSI SIP GUID, and five zeroes.
+    /// a PE image uses. The shape is taken from Microsoft-signed packages: version 2 - not
+    /// 1, which is the obvious guess - the MSI SIP GUID, and five zeroes.
     /// </remarks>
     public static byte[] EncodeForMsi(ReadOnlySpan<byte> authenticodeDigest, HashAlgorithmName hashAlgorithm)
     {

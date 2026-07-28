@@ -1,6 +1,4 @@
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using SignUniversal.Core.Signing;
 
 namespace SignUniversal.Cli;
 
@@ -8,7 +6,7 @@ namespace SignUniversal.Cli;
 /// An <see cref="IRemoteSigner"/> backed by a local PKCS#12 (.pfx) file.
 /// </summary>
 /// <remarks>
-/// A local key is obviously not a remote one — this backend exists so the signing
+/// A local key is obviously not a remote one - this backend exists so the signing
 /// pipeline is usable and testable before the Azure milestone lands. It still routes
 /// every private-key operation through
 /// <see cref="SignHash(byte[], HashAlgorithmName, RSASignaturePadding)"/> and exposes

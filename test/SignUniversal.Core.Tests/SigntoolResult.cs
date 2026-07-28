@@ -26,7 +26,7 @@ internal sealed partial record SigntoolResult(int ExitCode, string Output)
 
     /// <summary>
     /// Gets a value indicating whether the only thing signtool objected to was an
-    /// untrusted certificate chain — the expected verdict for a self-signed test key.
+    /// untrusted certificate chain - the expected verdict for a self-signed test key.
     /// </summary>
     public bool RejectedOnlyForUntrustedRoot =>
         FoundSignature &&

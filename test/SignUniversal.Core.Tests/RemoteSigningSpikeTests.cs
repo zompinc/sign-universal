@@ -1,8 +1,3 @@
-using System.Security.Cryptography;
-using FluentAssertions;
-using SignUniversal.Core.Authenticode;
-using TUnit.Core;
-
 namespace SignUniversal.Core.Tests;
 
 /// <summary>
@@ -26,7 +21,7 @@ public sealed class RemoteSigningSpikeTests
     [Test]
     public void ExportingPrivateParameters_IsRefused()
     {
-        // The remote key must never yield private material — the security invariant.
+        // The remote key must never yield private material - the security invariant.
         using LocalKeyRemoteSigner signer = new();
         using SignUniversal.Core.Signing.RemoteSigningRsa rsa = new(signer);
 

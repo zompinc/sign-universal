@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using global::Azure.Core;
 using global::Azure.Developer.TrustedSigning.CryptoProvider;
 using global::Azure.Identity;

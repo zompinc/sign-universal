@@ -1,22 +1,18 @@
 using System.Buffers.Binary;
 using System.Reflection.PortableExecutable;
-using System.Security.Cryptography;
-using FluentAssertions;
-using SignUniversal.Core.Authenticode;
-using TUnit.Core;
 
 namespace SignUniversal.Core.Tests;
 
 /// <summary>
 /// End-to-end PE signing: the certificate table an image ends up carrying, and the
-/// invariant the whole format rests on — embedding a signature must not change the
+/// invariant the whole format rests on - embedding a signature must not change the
 /// digest that signature covers.
 /// </summary>
 /// <remarks>
 /// The subject is this test run's own <c>SignUniversal.Core.dll</c>: a real
 /// compiler-produced PE, so the tests exercise a genuine section layout rather than a
 /// hand-built one. Structural assertions read the result back through
-/// <see cref="PEReader"/> — an in-box parser independent of ours.
+/// <see cref="PEReader"/> - an in-box parser independent of ours.
 /// </remarks>
 public sealed class PeSigningTests
 {
@@ -142,7 +138,7 @@ public sealed class PeSigningTests
     {
         if (!SigntoolHarness.IsAvailable)
         {
-            // CI sets this on the Windows leg so the gate cannot pass by never running —
+            // CI sets this on the Windows leg so the gate cannot pass by never running -
             // a silently skipped correctness gate is worse than no gate, because the build
             // still goes green.
             Environment.GetEnvironmentVariable("SIGNUNIVERSAL_REQUIRE_SIGNTOOL").Should().BeNullOrEmpty(
@@ -191,7 +187,7 @@ public sealed class PeSigningTests
     public void SignFile_WhenSigningFails_LeavesTheExistingSignatureIntact()
     {
         // Preparing an image strips the signature it already had, so a backend that fails
-        // afterwards — an expired key, a lost network, a rejected credential — must not be
+        // afterwards - an expired key, a lost network, a rejected credential - must not be
         // able to leave an artifact behind with no signature at all.
         using TemporaryDirectory directory = new();
         string path = Path.Combine(directory.Path, "signed.dll");

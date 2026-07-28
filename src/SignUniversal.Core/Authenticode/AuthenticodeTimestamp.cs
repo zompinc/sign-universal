@@ -1,8 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
-using System.Security.Cryptography.X509Certificates;
 
 namespace SignUniversal.Core.Authenticode;
 
@@ -12,7 +10,7 @@ namespace SignUniversal.Core.Authenticode;
 /// <remarks>
 /// <para>
 /// A timestamp is what lets a signature outlive the certificate that made it. Without
-/// one, the signature stops validating the moment the certificate expires — which for a
+/// one, the signature stops validating the moment the certificate expires - which for a
 /// conventional certificate is years away, and for Azure Trusted Signing is about three
 /// days.
 /// </para>
@@ -23,8 +21,8 @@ namespace SignUniversal.Core.Authenticode;
 /// from Microsoft-signed binaries, all of which carry exactly this attribute.
 /// </para>
 /// <para>
-/// What the authority attests to is the signature value — the encrypted digest in the
-/// signer info — not the file and not the signed attributes. Nothing this class does can
+/// What the authority attests to is the signature value - the encrypted digest in the
+/// signer info - not the file and not the signed attributes. Nothing this class does can
 /// disturb the signature it timestamps.
 /// </para>
 /// </remarks>
@@ -33,7 +31,7 @@ public static class AuthenticodeTimestamp
     /// <summary>The timestamp authority used when none is specified.</summary>
     public const string DefaultTimestampUrl = "http://timestamp.digicert.com";
 
-    /// <summary>SPC_RFC3161_OBJID — where Authenticode keeps its RFC 3161 token.</summary>
+    /// <summary>SPC_RFC3161_OBJID - where Authenticode keeps its RFC 3161 token.</summary>
     internal const string Rfc3161CounterSignOid = "1.3.6.1.4.1.311.3.3.1";
 
     private static readonly MediaTypeHeaderValue TimestampQuery = new("application/timestamp-query");
@@ -55,7 +53,7 @@ public static class AuthenticodeTimestamp
 
         SignerInfo signerInfo = signedCms.SignerInfos[0];
 
-        // The authority timestamps the signature value, hashed — not the file.
+        // The authority timestamps the signature value, hashed - not the file.
         byte[] signature = signerInfo.GetSignature();
         byte[] messageImprint = Hash(signature, hashAlgorithm);
 

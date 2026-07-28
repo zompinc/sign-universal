@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-
 namespace SignUniversal.Core.Signing;
 
 /// <summary>
@@ -16,7 +13,7 @@ namespace SignUniversal.Core.Signing;
 /// managed PKCS#7 pipeline will hash the content, then call
 /// <see cref="SignHash(byte[], HashAlgorithmName, RSASignaturePadding)"/>, which
 /// forwards the digest to the remote backend. No private key material is ever
-/// present in process — <see cref="ExportParameters"/> deliberately refuses to
+/// present in process - <see cref="ExportParameters"/> deliberately refuses to
 /// return private parameters.
 /// </remarks>
 public sealed class RemoteSigningRsa : RSA

@@ -8,7 +8,7 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
 This product's design and Authenticode format handling are informed by jsign, an
 Apache-2.0 licensed project:
 
-  jsign — https://github.com/ebourg/jsign
+  jsign - https://github.com/ebourg/jsign
   Copyright (c) Emmanuel Bourg and contributors
   Licensed under the Apache License, Version 2.0
 

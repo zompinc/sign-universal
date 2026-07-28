@@ -32,7 +32,7 @@
     <PackageVersion Include="NuGet.Packaging" Version="6.14.3" />
     <!--
       Trusted Signing over plain HTTPS. Note this is NOT Microsoft.Trusted.Signing.Client,
-      which ships a native signtool Dlib (MFC/MSVC) and is therefore Windows-only — the
+      which ships a native signtool Dlib (MFC/MSVC) and is therefore Windows-only - the
       reason `dotnet sign ... trusted-signing` cannot run on Linux at all.
     -->
     <PackageVersion Include="Azure.Developer.TrustedSigning.CryptoProvider" Version="0.1.60" />

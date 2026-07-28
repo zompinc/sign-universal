@@ -1,4 +1,4 @@
-# AGENTS.md — sign-universal
+# AGENTS.md - sign-universal
 
 Repo-level conventions for AI agents and contributors. Inherits the Zomp global
 conventions; the notes below are additions or **explicit, temporary overrides**.
@@ -20,14 +20,14 @@ These are intentional and tracked, not oversights:
 1. **StyleCop ceremony rules relaxed** in `.editorconfig` (file headers, element docs,
    `this.` prefix, underscore-field naming). Each suppression carries a reason inline.
 
-Package versions are now pinned exactly — a signing tool whose dependency graph can shift
+Package versions are now pinned exactly - a signing tool whose dependency graph can shift
 between two builds of the same commit is not reproducible.
 
 ## Shipping
 
 - **`net8.0` is the floor, not the ceiling.** `RollForward=LatestMajor` is set repo-wide
-  in `Directory.Build.props` and must stay. Without it, anything executable — the tool a
-  user installs, and the test host on a CI runner — refuses to start on a machine with
+  in `Directory.Build.props` and must stay. Without it, anything executable - the tool a
+  user installs, and the test host on a CI runner - refuses to start on a machine with
   only a newer runtime. CI runners carry exactly one runtime, so this fails immediately.
 - **`fetch-depth: 0` in every CI job.** Nerdbank.GitVersioning derives the version from
   git height; a shallow clone silently produces the wrong one.
@@ -62,7 +62,7 @@ the spec. They look like quirks; they are load-bearing.
    `[0] { SEQUENCE v }`. `AuthenticodeCms` converts between the two, and
    `VerifySignatureOnly` converts back before handing the blob to .NET.
 1. **`messageDigest` covers the *value octets* of `SpcIndirectDataContent`**, not its
-   full TLV — the direct consequence of the point above. This is why the builder passes
+   full TLV - the direct consequence of the point above. This is why the builder passes
    the value octets to `ContentInfo`: it makes `SignedCms` compute exactly the digest
    Windows expects.
 1. **`WIN_CERTIFICATE.dwLength` includes the 8-byte alignment padding**, and equals the
@@ -73,7 +73,7 @@ the spec. They look like quirks; they are load-bearing.
 
 1. **The RFC 3161 token lives under `1.3.6.1.4.1.311.3.3.1`**, Microsoft's own OID, not
    the `id-aa-timeStampToken` that ordinary CMS and NuGet use. The authority attests to
-   the *signature value* in the signer info — not the file, not the signed attributes —
+   the *signature value* in the signer info - not the file, not the signed attributes -
    so timestamping cannot disturb what it countersigns.
 
 1. **MSI streams are ordered by the raw bytes of their UTF-16LE names**, not by ordinal
@@ -91,7 +91,7 @@ the package hashing and the zip surgery; we supply only the CMS signature. Resis
 urge to hand-roll any of it.
 
 1. **`SigningUtility.CreateCmsSigner` then `cmsSigner.PrivateKey = remoteRsa`.** NuGet
-   builds the signer — identifier type, signed attributes, chain, digest algorithm — and
+   builds the signer - identifier type, signed attributes, chain, digest algorithm - and
    we swap in the remote key. Building the `CmsSigner` ourselves would silently drift
    from whatever NuGet decides is correct.
 1. **`SignPackageRequest.Dispose()` disposes the certificate you hand it.** Pass a copy,
@@ -103,7 +103,7 @@ urge to hand-roll any of it.
    omit the root, and *Microsoft Identity Verification Root CA 2020* is not in Ubuntu's
    trust store, so the chain cannot be built. The default is DigiCert for that reason.
 1. **Use `Azure.Developer.TrustedSigning.CryptoProvider`, never
-   `Microsoft.Trusted.Signing.Client`** — the latter ships a native signtool Dlib
+   `Microsoft.Trusted.Signing.Client`** - the latter ships a native signtool Dlib
    (MFC/MSVC) and is the reason `dotnet sign ... trusted-signing` cannot run on Linux.
 1. **NuGet validates the signing certificate's chain against the machine trust store
    before it will sign, and an untrusted root is fatal.** Trusted Signing's root is not
