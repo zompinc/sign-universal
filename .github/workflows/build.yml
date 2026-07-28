@@ -140,7 +140,8 @@ jobs:
         run: |
           sign-universal --version
           sign-universal self-test
-          cp artifacts/*.nupkg smoke.nupkg
+          # One specific package: the glob now matches four, and cp would reject that.
+          cp artifacts/SignUniversal.Cli.*.nupkg smoke.nupkg
           sign-universal sign smoke.nupkg --self-signed --no-timestamp
           dotnet nuget verify smoke.nupkg > verify.txt 2>&1 || true
           cat verify.txt
