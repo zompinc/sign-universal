@@ -23,6 +23,7 @@ internal static class Program
             "--version" => PrintVersion(),
             "self-test" => RunSelfTest(),
             "sign" => await RunSign(args).ConfigureAwait(false),
+            "verify" => VerifyCommand.Run(args),
             _ => PrintHelp(),
         };
     }
@@ -39,6 +40,7 @@ internal static class Program
               sign-universal sign <files>  Sign PE images (.exe/.dll), MSI packages
                                            (.msi), and NuGet packages (.nupkg). Globs
                                            work: one signing session covers every file.
+              sign-universal verify <files> Report what a signed file carries.
               sign-universal --version    Show version.
               sign-universal --help       Show this help.
 
@@ -71,6 +73,10 @@ internal static class Program
                                   validation failed" — see the README.
 
             Every format is timestamped by default.
+
+            `verify` reports the signer, whether the signature covers the file, and the
+            timestamp. It does not decide trust — use `signtool verify /pa` or
+            `dotnet nuget verify` for that.
             """);
         return 0;
     }
