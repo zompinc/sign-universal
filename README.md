@@ -192,7 +192,7 @@ loudly instead of shipping quietly broken signatures to everyone who installs th
 ## Checking a signature
 
 ```bash
-sign-universal verify app.exe installer.msi
+sign-universal verify app.exe installer.msi package.nupkg
 ```
 
 Reports the signer, how many certificates the signature embeds, whether the signature is

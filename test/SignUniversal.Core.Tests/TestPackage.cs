@@ -17,8 +17,17 @@ internal static class TestPackage
     /// <returns>The path of the package.</returns>
     public static string Create(string directory)
     {
+        // Deliberately several kilobytes of poorly-compressible bytes, so a test can flip
+        // one at a known offset and be sure it landed in content rather than in the
+        // signature that follows it.
         string payloadPath = Path.Combine(directory, "payload.bin");
-        File.WriteAllBytes(payloadPath, "not really an assembly, but the signature does not care"u8.ToArray());
+        byte[] payload = new byte[16 * 1024];
+        for (int i = 0; i < payload.Length; i++)
+        {
+            payload[i] = (byte)((i * 2654435761L) >> 13);
+        }
+
+        File.WriteAllBytes(payloadPath, payload);
 
         PackageBuilder builder = new()
         {

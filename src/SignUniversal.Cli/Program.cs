@@ -21,7 +21,7 @@ internal static class Program
             "--version" => PrintVersion(),
             "self-test" => RunSelfTest(),
             "sign" => await RunSign(args).ConfigureAwait(false),
-            "verify" => VerifyCommand.Run(args),
+            "verify" => await VerifyCommand.Run(args).ConfigureAwait(false),
             _ => PrintHelp(),
         };
     }

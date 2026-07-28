@@ -1,29 +1,15 @@
-using System.Security.Cryptography.Pkcs;
-using SignUniversal.Core.Authenticode;
-using SignUniversal.Core.Msi;
+using NuGet.Packaging.Signing;
+using SignUniversal.Core;
 
 namespace SignUniversal.Cli;
 
 /// <summary>
-/// Reports what a signed file carries: who signed it, whether the signature covers the
-/// bytes on disk, and whether it is timestamped.
+/// Prints what a signed file carries. The inspection itself lives in the engine, where
+/// tests can reach it.
 /// </summary>
-/// <remarks>
-/// <para>
-/// This deliberately stops short of deciding whether a signature should be
-/// <em>trusted</em>. Trust is a question about certificate chains and local policy, and
-/// the platform tools already answer it well - <c>signtool verify /pa</c> on Windows,
-/// <c>dotnet nuget verify</c> for packages. Answering it a second time, differently,
-/// would be worse than not answering it.
-/// </para>
-/// <para>
-/// What it does answer is the question those tools cannot answer off Windows: does this
-/// signature actually cover this file, and is it intact.
-/// </para>
-/// </remarks>
 internal static class VerifyCommand
 {
-    public static int Run(string[] args)
+    public static async Task<int> Run(string[] args)
     {
         List<string> files = [];
 
@@ -44,7 +30,7 @@ internal static class VerifyCommand
             return 2;
         }
 
-        bool allSigned = true;
+        bool allGood = true;
 
         foreach (string file in files)
         {
@@ -54,57 +40,42 @@ internal static class VerifyCommand
                 return 2;
             }
 
-            allSigned &= Report(file);
+            allGood &= await Report(file).ConfigureAwait(false);
         }
 
-        return allSigned ? 0 : 1;
+        return allGood ? 0 : 1;
     }
 
-    private static bool Report(string file)
+    private static async Task<bool> Report(string file)
     {
         Console.WriteLine(file);
 
         try
         {
-            bool isMsi = string.Equals(Path.GetExtension(file), ".msi", StringComparison.OrdinalIgnoreCase);
+            SignatureReport report = await SignatureInspector.InspectAsync(file).ConfigureAwait(false);
 
-            using FileStream stream = File.OpenRead(file);
-            byte[]? signature = isMsi
-                ? MsiFile.ReadEmbeddedSignature(stream)
-                : PeFile.ReadEmbeddedSignature(stream);
-
-            if (signature is null)
+            if (!report.IsSigned)
             {
-                Console.WriteLine("  not signed");
+                Console.WriteLine($"  {report.Format}, not signed");
                 return false;
             }
 
-            SignedCms cms = new();
-            cms.Decode(signature);
-
-            Console.WriteLine($"  signer:    {cms.SignerInfos[0].Certificate?.Subject ?? "(certificate not embedded)"}");
-            Console.WriteLine($"  chain:     {cms.Certificates.Count} certificate(s) embedded");
-            Console.WriteLine($"  signature: {(AuthenticodeSignedDataBuilder.VerifySignatureOnly(signature) ? "valid" : "INVALID")}");
-
-            // The digest is what ties the signature to these particular bytes.
-            byte[] digest = isMsi
-                ? MsiFile.ComputeAuthenticodeDigest(stream, HashAlgorithmName.SHA256)
-                : PeFile.ComputeAuthenticodeDigest(stream, HashAlgorithmName.SHA256);
-
-            bool covers = Convert.ToHexString(signature).Contains(
-                Convert.ToHexString(digest), StringComparison.OrdinalIgnoreCase);
-
-            Console.WriteLine($"  covers this file: {(covers ? "yes" : "NO - the file changed after signing, or uses another digest algorithm")}");
-
-            Rfc3161TimestampToken? timestamp = AuthenticodeTimestamp.TryGetTimestamp(cms);
-            Console.WriteLine(timestamp is null
+            Console.WriteLine($"  format:    {report.Format}");
+            Console.WriteLine($"  signer:    {report.Signer ?? "(certificate not embedded)"}");
+            Console.WriteLine($"  chain:     {report.EmbeddedCertificates} certificate(s) embedded");
+            Console.WriteLine($"  signature: {(report.SignatureValid ? "valid" : "INVALID")}");
+            Console.WriteLine($"  covers this file: {(report.CoversFile ? "yes" : "NO - the file changed after signing")}");
+            Console.WriteLine(report.Timestamp is null
                 ? "  timestamp: none - the signature expires with the certificate"
-                : $"  timestamp: {timestamp.TokenInfo.Timestamp:u}");
+                : $"  timestamp: {report.Timestamp:u}");
 
-            return covers;
+            return report.SignatureValid && report.CoversFile;
         }
-        catch (Exception ex) when (ex is InvalidDataException or CryptographicException or NotSupportedException)
+        catch (Exception ex) when (ex is InvalidDataException or CryptographicException
+            or NotSupportedException or SignatureException)
         {
+            // A malformed signature file is a different thing from one that simply does not
+            // cover the file, so it is reported rather than folded into the normal output.
             Console.Error.WriteLine($"  error: {ex.Message}");
             return false;
         }
