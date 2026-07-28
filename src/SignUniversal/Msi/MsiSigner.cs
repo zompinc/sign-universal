@@ -1,6 +1,6 @@
-using SignUniversal.Core.Authenticode;
+using SignUniversal.Authenticode;
 
-namespace SignUniversal.Core.Msi;
+namespace SignUniversal.Msi;
 
 /// <summary>
 /// Signs an MSI package end to end: strip any previous signature, digest, sign the

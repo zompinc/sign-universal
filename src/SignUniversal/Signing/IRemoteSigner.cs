@@ -1,4 +1,4 @@
-namespace SignUniversal.Core.Signing;
+namespace SignUniversal.Signing;
 
 /// <summary>
 /// A signing backend whose private key lives remotely - Azure Key Vault, Azure

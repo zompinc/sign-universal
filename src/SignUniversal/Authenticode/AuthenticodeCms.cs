@@ -1,4 +1,4 @@
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// Converts between the CMS encapsulation .NET produces and the one Authenticode

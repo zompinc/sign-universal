@@ -1,6 +1,6 @@
-using SignUniversal.Core;
-using SignUniversal.Core.Msi;
-using SignUniversal.Core.Packaging;
+using SignUniversal;
+using SignUniversal.Msi;
+using SignUniversal.Packaging;
 
 namespace SignUniversal.Core.Tests;
 

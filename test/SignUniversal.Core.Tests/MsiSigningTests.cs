@@ -1,5 +1,5 @@
 using OpenMcdf;
-using SignUniversal.Core.Msi;
+using SignUniversal.Msi;
 
 namespace SignUniversal.Core.Tests;
 

@@ -1,4 +1,4 @@
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// Object identifiers used by Authenticode, plus digest-algorithm OID mapping.

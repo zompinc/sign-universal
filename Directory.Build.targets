@@ -1,0 +1,17 @@
+<Project>
+
+  <!--
+    Files every shipping package needs. Imported after the project body, so IsPackable
+    has its final value here and non-shipping projects (tests) are skipped correctly.
+  -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)icon.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageTags>signing;code-signing;authenticode;nuget;trusted-signing;azure;cross-platform;linux;ci</PackageTags>
+  </PropertyGroup>
+
+</Project>

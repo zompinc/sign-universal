@@ -1,10 +1,7 @@
-using System.Security.Cryptography.Pkcs;
 using NuGet.Packaging;
 using NuGet.Packaging.Signing;
-using SignUniversal.Core.Authenticode;
-using SignUniversal.Core.Msi;
 
-namespace SignUniversal.Core;
+namespace SignUniversal;
 
 /// <summary>
 /// Reports what a signed file carries, whatever its format.
@@ -20,6 +17,10 @@ namespace SignUniversal.Core;
 /// It answers "is this signature intact and does it cover these bytes", not "should this
 /// signature be trusted". Trust depends on certificate chains and local policy, and
 /// <c>signtool verify /pa</c> and <c>dotnet nuget verify</c> already answer it properly.
+/// </para>
+/// <para>
+/// The Authenticode half lives in <see cref="AuthenticodeInspector"/>, in the SignUniversal
+/// package, so that inspecting a PE image does not require NuGet's client libraries.
 /// </para>
 /// </remarks>
 public static class SignatureInspector
@@ -41,44 +42,7 @@ public static class SignatureInspector
         }
 
         bool isMsi = extension.Equals(".msi", StringComparison.OrdinalIgnoreCase);
-        return InspectAuthenticode(path, isMsi);
-    }
-
-    private static SignatureReport InspectAuthenticode(string path, bool isMsi)
-    {
-        string format = isMsi ? "MSI package" : "PE image";
-
-        using FileStream stream = File.OpenRead(path);
-        byte[]? signature = isMsi
-            ? MsiFile.ReadEmbeddedSignature(stream)
-            : PeFile.ReadEmbeddedSignature(stream);
-
-        if (signature is null)
-        {
-            return SignatureReport.WithoutSignature(format);
-        }
-
-        SignedCms cms = new();
-        cms.Decode(signature);
-
-        // Authenticode names the digest algorithm in the signer info, so the file is
-        // rehashed with whatever was used rather than an assumed SHA-256.
-        HashAlgorithmName digestAlgorithm = DigestAlgorithmOf(cms);
-        byte[] digest = isMsi
-            ? MsiFile.ComputeAuthenticodeDigest(stream, digestAlgorithm)
-            : PeFile.ComputeAuthenticodeDigest(stream, digestAlgorithm);
-
-        bool covers = Convert.ToHexString(signature).Contains(
-            Convert.ToHexString(digest), StringComparison.OrdinalIgnoreCase);
-
-        return new SignatureReport(
-            format,
-            IsSigned: true,
-            Signer: cms.SignerInfos[0].Certificate?.Subject,
-            EmbeddedCertificates: cms.Certificates.Count,
-            SignatureValid: AuthenticodeSignedDataBuilder.VerifySignatureOnly(signature),
-            CoversFile: covers,
-            Timestamp: AuthenticodeTimestamp.TryGetTimestamp(cms)?.TokenInfo.Timestamp);
+        return AuthenticodeInspector.Inspect(path, isMsi);
     }
 
     private static async Task<SignatureReport> InspectPackageAsync(string path, CancellationToken cancellationToken)
@@ -138,13 +102,4 @@ public static class SignatureInspector
             CoversFile: covers,
             Timestamp: signature.Timestamps.Count > 0 ? signature.Timestamps[0].GeneralizedTime : null);
     }
-
-    private static HashAlgorithmName DigestAlgorithmOf(SignedCms cms) =>
-        cms.SignerInfos[0].DigestAlgorithm.Value switch
-        {
-            "2.16.840.1.101.3.4.2.2" => HashAlgorithmName.SHA384,
-            "2.16.840.1.101.3.4.2.3" => HashAlgorithmName.SHA512,
-            "1.3.14.3.2.26" => HashAlgorithmName.SHA1,
-            _ => HashAlgorithmName.SHA256,
-        };
 }

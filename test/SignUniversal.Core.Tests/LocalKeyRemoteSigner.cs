@@ -1,5 +1,5 @@
 using System.Security.Cryptography.X509Certificates;
-using SignUniversal.Core.Signing;
+using SignUniversal.Signing;
 
 namespace SignUniversal.Core.Tests;
 

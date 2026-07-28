@@ -1,6 +1,6 @@
 using System.Security.Cryptography.Pkcs;
 
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// Builds an Authenticode PKCS#7 SignedData blob over a precomputed file digest,

@@ -1,5 +1,5 @@
 using Azure.Security.KeyVault.Keys.Cryptography;
-using SignUniversal.Core.Signing.Azure;
+using SignUniversal.Signing.Azure;
 
 namespace SignUniversal.Core.Tests;
 

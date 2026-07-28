@@ -2,7 +2,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography.Pkcs;
 
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// Attaches an RFC 3161 timestamp to an Authenticode signature.

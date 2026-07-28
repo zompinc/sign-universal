@@ -1,5 +1,5 @@
 using NuGet.Packaging.Signing;
-using SignUniversal.Core;
+using SignUniversal;
 
 namespace SignUniversal.Cli;
 

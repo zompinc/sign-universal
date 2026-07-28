@@ -63,8 +63,10 @@ with Trusted Signing using the build being released, verifies them with
 ## Layout
 
 ```text
-src/SignUniversal.Core    signing engine
-src/SignUniversal.Cli     dotnet tool, published as `SignUniversal` (`sign-universal`)
+src/SignUniversal         PE + MSI Authenticode engine, published as `SignUniversal`
+src/SignUniversal.Azure   Trusted Signing / Key Vault key sources
+src/SignUniversal.NuGet   .nupkg author signing
+src/SignUniversal.Cli     dotnet tool, published as `SignUniversal.Cli` (`sign-universal`)
 test/SignUniversal.Core.Tests
 ```
 

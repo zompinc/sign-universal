@@ -23,7 +23,7 @@ public sealed class RemoteSigningSpikeTests
     {
         // The remote key must never yield private material - the security invariant.
         using LocalKeyRemoteSigner signer = new();
-        using SignUniversal.Core.Signing.RemoteSigningRsa rsa = new(signer);
+        using SignUniversal.Signing.RemoteSigningRsa rsa = new(signer);
 
         Action exportPrivate = () => rsa.ExportParameters(includePrivateParameters: true);
 

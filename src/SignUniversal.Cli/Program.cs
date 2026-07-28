@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 using Azure;
 using Azure.Identity;
 using NuGet.Packaging.Signing;
-using SignUniversal.Core.Authenticode;
-using SignUniversal.Core.Msi;
-using SignUniversal.Core.Packaging;
-using SignUniversal.Core.Signing.Azure;
+using SignUniversal.Authenticode;
+using SignUniversal.Msi;
+using SignUniversal.Packaging;
+using SignUniversal.Signing.Azure;
 
 namespace SignUniversal.Cli;
 

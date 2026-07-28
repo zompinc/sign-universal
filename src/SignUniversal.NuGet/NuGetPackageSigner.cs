@@ -4,7 +4,7 @@ using NuGet.Packaging.Signing;
 using NuGetHashAlgorithmName = NuGet.Common.HashAlgorithmName;
 using SystemHashAlgorithmName = System.Security.Cryptography.HashAlgorithmName;
 
-namespace SignUniversal.Core.Packaging;
+namespace SignUniversal.Packaging;
 
 /// <summary>
 /// Author-signs a NuGet package with a key that never leaves the backend.

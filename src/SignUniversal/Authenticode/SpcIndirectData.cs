@@ -1,4 +1,4 @@
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// Encodes the <c>SpcIndirectDataContent</c> structure that Authenticode uses as
