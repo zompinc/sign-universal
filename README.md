@@ -178,6 +178,21 @@ loudly instead of shipping quietly broken signatures to everyone who installs th
 > will — which would break publishing for every package on that account, not just this
 > one.
 
+## Checking a signature
+
+```bash
+sign-universal verify app.exe installer.msi
+```
+
+Reports the signer, how many certificates the signature embeds, whether the signature is
+intact, whether it covers the bytes on disk, and the timestamp. Exit code is non-zero if
+any file is unsigned or no longer matches its signature.
+
+It deliberately does not decide **trust** — that is a question about certificate chains
+and local policy, and `signtool verify /pa` and `dotnet nuget verify` already answer it
+well. What this answers is the part they cannot answer off Windows: does this signature
+actually cover this file.
+
 ## Roadmap
 
 | Milestone | What | Notes |
@@ -190,7 +205,7 @@ loudly instead of shipping quietly broken signatures to everyone who installs th
 | ✅ Azure Key Vault | `IRemoteSigner` via `CryptographyClient` | verified against a live vault |
 | ✅ MSI | compound-file digest + pre-hash + signature stream | digest and pre-hash both match signtool's |
 | ✅ Timestamp | RFC 3161 for both formats | on by default; `--no-timestamp` opts out |
-| Verify | `signtool /verify` harness in CI | harness landed with PE; needs a Windows job |
+| ✅ Verify | `signtool /verify` + `dotnet nuget verify` in CI | both run on every push; `verify` command for offline checks |
 
 Out of scope for v1: MSIX/APPX, CAB, scripts, non-Azure KMS.
 

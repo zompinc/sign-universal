@@ -65,8 +65,9 @@ jobs:
           "SIGNUNIVERSAL_MSI_FIXTURE=$env:RUNNER_TEMP\sample.msi" >> $env:GITHUB_ENV
 
       - name: Sign the MSI fixture with signtool
-        # Ground truth for this exact package: signtool's own signature carries the digest
-        # Windows expects, so ours can be diffed against it instead of guessed at.
+        # Ground truth on every build, not a one-off diagnostic: signtool's signature over
+        # this package carries the digest and pre-hash Windows expects, and the oracle
+        # tests below check ours against them.
         if: ${{ runner.os == 'Windows' }}
         shell: pwsh
         run: |
@@ -78,17 +79,7 @@ jobs:
           Copy-Item "$env:RUNNER_TEMP/sample.msi" "$env:RUNNER_TEMP/signtool-signed.msi"
           & $tool sign /fd SHA256 /sha1 $cert.Thumbprint "$env:RUNNER_TEMP/signtool-signed.msi"
           if ($LASTEXITCODE -ne 0) { throw "signtool sign failed" }
-
-      - name: Keep signtool's signed MSI
-        if: ${{ runner.os == 'Windows' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: signtool-oracle
-          path: |
-            ${{ runner.temp }}/signtool-signed.msi
-            ${{ runner.temp }}/sample.msi
-          retention-days: 5
-          if-no-files-found: ignore
+          "SIGNUNIVERSAL_MSI_ORACLE=$env:RUNNER_TEMP/signtool-signed.msi" >> $env:GITHUB_ENV
 
       - name: Test
         env:
@@ -102,13 +93,15 @@ jobs:
           SIGNUNIVERSAL_TIMESTAMP_TESTS: '1'
         run: dotnet run --project test/SignUniversal.Core.Tests -c Release
 
-      - name: Keep the MSI for diagnosis
-        # A signature Windows rejects is only debuggable with the artifact in hand.
+      - name: Keep the MSI packages for diagnosis
+        # A signature Windows rejects is only debuggable with the files in hand.
         if: ${{ failure() && runner.os == 'Windows' }}
         uses: actions/upload-artifact@v4
         with:
-          name: msi-fixture
-          path: ${{ runner.temp }}/sample.msi
+          name: msi-diagnosis
+          path: |
+            ${{ runner.temp }}/sample.msi
+            ${{ runner.temp }}/signtool-signed.msi
           retention-days: 5
           if-no-files-found: ignore
 
