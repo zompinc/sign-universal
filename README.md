@@ -85,11 +85,13 @@ Two requirements are invisible until you try it, and each costs an afternoon:
 [`docs/adopting-sign-universal.md`](docs/adopting-sign-universal.md) has the full change,
 which is two lines of workflow plus those flags.
 
-It is also quicker. Moving `Zomp.SyncMethodGenerator`'s signing job to Linux took it from
-51-90s to 10-12s, measured across the same job before and after. Most of that is runner
-startup rather than signing - the same job with signing skipped still costs about 48s on
-`windows-latest` against 10s on `ubuntu-latest` - and GitHub bills Windows minutes at twice
-the rate, so a private repository pays the difference twice over.
+How much time it saves depends on what else the job does. Signing itself is much the same
+speed on either platform; what goes away is Windows runner startup, which costs about 48s
+against 10s on `ubuntu-latest`. A job that only signs gains most of that:
+`Zomp.SyncMethodGenerator` went from 51-90s to 10-12s. A job that also pushes packages
+gains proportionally less - `Zomp.EFCore.BinaryFunctions` went from 41s to 36s while
+gaining a verification step. Windows minutes are also billed at twice the rate, so a
+private repository saves on both counts.
 
 ## Correctness
 
