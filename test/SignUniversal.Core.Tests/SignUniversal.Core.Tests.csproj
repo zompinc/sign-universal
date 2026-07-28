@@ -15,7 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\SignUniversal.Core\SignUniversal.Core.csproj" />
+    <ProjectReference Include="..\..\src\SignUniversal\SignUniversal.csproj" />
+    <ProjectReference Include="..\..\src\SignUniversal.Azure\SignUniversal.Azure.csproj" />
+    <ProjectReference Include="..\..\src\SignUniversal.NuGet\SignUniversal.NuGet.csproj" />
   </ItemGroup>
 
   <!--
@@ -28,7 +30,7 @@
     <Using Include="System.Security.Cryptography.Pkcs" />
     <Using Include="FluentAssertions" />
     <Using Include="TUnit.Core" />
-    <Using Include="SignUniversal.Core.Authenticode" />
+    <Using Include="SignUniversal.Authenticode" />
   </ItemGroup>
 
 </Project>

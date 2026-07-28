@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <IsPackable>false</IsPackable>
-    <RootNamespace>SignUniversal.Core</RootNamespace>
-    <Description>Cross-platform Authenticode signing engine (PE + MSI), keys held in Azure Key Vault / Trusted Signing.</Description>
+    <RootNamespace>SignUniversal</RootNamespace>
+    <Title>SignUniversal</Title>
+    <Description>Cross-platform Authenticode signing for Windows PE binaries and MSI packages, from Linux, macOS or Windows. The private-key operation goes through IRemoteSigner, so the key can stay in an HSM and never reach the process. Add SignUniversal.Azure for Trusted Signing or Key Vault key sources, or SignUniversal.NuGet to sign .nupkg files.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,11 +14,6 @@
 
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
-    <PackageReference Include="NuGet.Packaging" />
-    <PackageReference Include="Azure.Identity" />
-    <PackageReference Include="Azure.Developer.TrustedSigning.CryptoProvider" />
-    <PackageReference Include="Azure.Security.KeyVault.Keys" />
-    <PackageReference Include="Azure.Security.KeyVault.Certificates" />
     <PackageReference Include="OpenMcdf" />
   </ItemGroup>
 
@@ -31,7 +26,7 @@
     <Using Include="System.Formats.Asn1" />
     <Using Include="System.Security.Cryptography" />
     <Using Include="System.Security.Cryptography.X509Certificates" />
-    <Using Include="SignUniversal.Core.Signing" />
+    <Using Include="SignUniversal.Signing" />
   </ItemGroup>
 
 </Project>

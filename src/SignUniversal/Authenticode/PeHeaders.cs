@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// The subset of the PE/COFF headers that Authenticode cares about: the two field

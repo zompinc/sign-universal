@@ -1,6 +1,6 @@
 using System.Buffers.Binary;
 
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// Reads a PE image, computes its Authenticode digest, and embeds a signature into

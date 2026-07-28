@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using OpenMcdf;
 
-namespace SignUniversal.Core.Msi;
+namespace SignUniversal.Msi;
 
 /// <summary>
 /// Reads an MSI package, computes its Authenticode digest, and writes the signature

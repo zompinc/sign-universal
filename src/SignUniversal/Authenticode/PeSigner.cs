@@ -1,4 +1,4 @@
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// Signs a PE image end to end: normalize, digest, sign the digest through the

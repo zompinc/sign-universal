@@ -1,4 +1,4 @@
-namespace SignUniversal.Core;
+namespace SignUniversal;
 
 /// <summary>What a file's signature says about itself.</summary>
 /// <param name="Format">The format that was inspected.</param>

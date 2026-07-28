@@ -9,7 +9,7 @@ namespace SignUniversal.Core.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It shares no code with <see cref="SignUniversal.Core.Authenticode.PeFile"/> and is
+/// It shares no code with <see cref="SignUniversal.Authenticode.PeFile"/> and is
 /// written for obviousness rather than efficiency: whole file in memory, no streaming, no
 /// reuse. That is the point - it exists to disagree with the engine when the engine is
 /// wrong, and the engine's streaming walk is where a transcription slip would hide.

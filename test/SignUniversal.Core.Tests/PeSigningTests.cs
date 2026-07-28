@@ -9,7 +9,7 @@ namespace SignUniversal.Core.Tests;
 /// digest that signature covers.
 /// </summary>
 /// <remarks>
-/// The subject is this test run's own <c>SignUniversal.Core.dll</c>: a real
+/// The subject is this test run's own <c>SignUniversal.dll</c>: a real
 /// compiler-produced PE, so the tests exercise a genuine section layout rather than a
 /// hand-built one. Structural assertions read the result back through
 /// <see cref="PEReader"/> - an in-box parser independent of ours.

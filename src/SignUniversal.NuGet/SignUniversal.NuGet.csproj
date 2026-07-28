@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>SignUniversal.Packaging</RootNamespace>
+    <Description>Author-signs NuGet packages with a key the process never holds. The hashing and the zip surgery that inserts .signature.p7s are NuGet's own libraries; this supplies only the CMS signature, from a remote key.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="SignUniversal.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SignUniversal\SignUniversal.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NuGet.Packaging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Security.Cryptography" />
+    <Using Include="System.Security.Cryptography.X509Certificates" />
+    <Using Include="SignUniversal.Signing" />
+  </ItemGroup>
+
+</Project>

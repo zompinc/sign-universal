@@ -2,7 +2,7 @@ using global::Azure.Core;
 using global::Azure.Developer.TrustedSigning.CryptoProvider;
 using global::Azure.Identity;
 
-namespace SignUniversal.Core.Signing.Azure;
+namespace SignUniversal.Signing.Azure;
 
 /// <summary>
 /// An <see cref="IRemoteSigner"/> backed by Azure Trusted Signing.

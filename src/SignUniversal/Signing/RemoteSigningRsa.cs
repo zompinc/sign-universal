@@ -1,4 +1,4 @@
-namespace SignUniversal.Core.Signing;
+namespace SignUniversal.Signing;
 
 /// <summary>
 /// An <see cref="RSA"/> whose signing operation is delegated to an

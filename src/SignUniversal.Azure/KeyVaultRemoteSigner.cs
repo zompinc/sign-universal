@@ -3,7 +3,7 @@ using global::Azure.Identity;
 using global::Azure.Security.KeyVault.Certificates;
 using global::Azure.Security.KeyVault.Keys.Cryptography;
 
-namespace SignUniversal.Core.Signing.Azure;
+namespace SignUniversal.Signing.Azure;
 
 /// <summary>
 /// An <see cref="IRemoteSigner"/> backed by a certificate in Azure Key Vault.

@@ -2,7 +2,7 @@ using System.Security.Cryptography.Pkcs;
 using NuGet.Common;
 using NuGet.Packaging.Signing;
 
-namespace SignUniversal.Core.Packaging;
+namespace SignUniversal.Packaging;
 
 /// <summary>
 /// NuGet's signing pipeline, with the private-key operation redirected to an

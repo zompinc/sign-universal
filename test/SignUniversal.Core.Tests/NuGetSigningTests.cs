@@ -1,5 +1,5 @@
 using System.IO.Compression;
-using SignUniversal.Core.Packaging;
+using SignUniversal.Packaging;
 
 namespace SignUniversal.Core.Tests;
 

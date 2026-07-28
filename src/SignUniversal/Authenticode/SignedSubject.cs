@@ -1,4 +1,4 @@
-namespace SignUniversal.Core.Authenticode;
+namespace SignUniversal.Authenticode;
 
 /// <summary>
 /// The kind of file an Authenticode signature describes, which decides how

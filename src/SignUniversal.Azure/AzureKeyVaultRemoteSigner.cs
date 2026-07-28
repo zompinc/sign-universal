@@ -1,7 +1,7 @@
-namespace SignUniversal.Core.Signing.Azure;
+namespace SignUniversal.Signing.Azure;
 
 /// <summary>
-/// Placeholder for an <see cref="SignUniversal.Core.Signing.IRemoteSigner"/> backed
+/// Placeholder for an <see cref="SignUniversal.Signing.IRemoteSigner"/> backed
 /// by Azure Key Vault / Azure Trusted Signing.
 /// </summary>
 /// <remarks>
