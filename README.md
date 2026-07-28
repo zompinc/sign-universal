@@ -2,7 +2,7 @@
 
 Cross-platform code signing for .NET — sign Windows binaries (PE), installers (MSI), and **NuGet packages** from **Linux, macOS, or Windows**, with the private key held in **Azure Trusted Signing** or **Azure Key Vault** (the key never leaves the HSM).
 
-> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. Azure Key Vault is verified the same way. **MSI is not usable yet**: its digest matches Microsoft-signed packages, but signtool rejects the MSIs we produce with `TRUST_E_BAD_DIGEST`, so something in the signing path is still wrong.
+> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. Azure Key Vault is verified the same way, and MSI packages are signed too.
 
 ```bash
 # What this exists to make possible: signing on ubuntu-latest, key in Trusted Signing.
@@ -142,9 +142,15 @@ same as ordinal string order, and matters because MSI mangles table names into c
 points where the two disagree. The `\u0005MsiDigitalSignatureEx` pre-hash is covered by
 the digest when present, so re-signing removes it rather than leaving it stale.
 
-The algorithm was established the same way as the PE digest: recompute the digest of an
-already-signed package and find it inside that package's own signature. Point
-`SIGNUNIVERSAL_MSI_ORACLE` at a signed `.msi` to re-run that check.
+Signing also writes `\u0005MsiDigitalSignatureEx`, a pre-hash over the package's
+*metadata* — stream names, sizes, class identifiers, state bits, timestamps. Where the
+main digest covers what the streams contain, this covers how they are described, so a
+package cannot be altered by renaming or rearranging its parts either. signtool writes one
+unconditionally and Windows rejects the signature without it.
+
+Both were established the same way as the PE digest: reproduce what an already-signed
+package carries. Point `SIGNUNIVERSAL_MSI_ORACLE` at a signed `.msi` to re-run those
+checks.
 
 ## Signing a PE image
 
@@ -182,7 +188,7 @@ loudly instead of shipping quietly broken signatures to everyone who installs th
 | ✅ NuGet | author-signed `.nupkg` with a remote key | NuGet's libraries do the format; we do the key |
 | ✅ Trusted Signing | `IRemoteSigner` over the managed client | verified against a live account |
 | ✅ Azure Key Vault | `IRemoteSigner` via `CryptographyClient` | verified against a live vault |
-| MSI | compound-file digest + signature stream | digest matches Microsoft's, **but signtool rejects our output** |
+| ✅ MSI | compound-file digest + pre-hash + signature stream | digest and pre-hash both match signtool's |
 | ✅ Timestamp | RFC 3161 for both formats | on by default; `--no-timestamp` opts out |
 | Verify | `signtool /verify` harness in CI | harness landed with PE; needs a Windows job |
 
