@@ -145,5 +145,6 @@ Out of scope for v1: MSIX/APPX, CAB, scripts, non-Azure KMS, and PE page hashes.
 
 ## Credit
 
-Design and format handling are informed by **jsign** (Apache-2.0) - see [`NOTICE`](NOTICE).
-Licensed Apache-2.0 (see [`LICENSE`](LICENSE)).
+Design and format handling were informed by **jsign** - see [`NOTICE`](NOTICE). No
+jsign code is included; the acknowledgement is a courtesy, not a licence obligation.
+Licensed MIT (see [`LICENSE`](LICENSE)).
