@@ -3,8 +3,9 @@ name: build
 on:
   push:
     branches: [master]
-    tags: ['v*']
   pull_request:
+  # Releases are cut by hand from master. The tag is derived from the package rather
+  # than typed, so the two cannot disagree.
   workflow_dispatch:
 
 # Declared null so the Actions schema linter accepts the `env.ACT` references below.
@@ -153,10 +154,12 @@ jobs:
   publish:
     name: publish
     needs: pack
-    # Tags only, and never from a fork: a fork cannot reach the signing credentials, so
-    # the job could only either fail or publish something unsigned.
-    if: ${{ startsWith(github.ref, 'refs/tags/v') && github.repository == 'zompinc/sign-universal' }}
+    # Deliberate, from master, and never from a fork — which could not reach the signing
+    # credentials anyway.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master' && github.repository == 'zompinc/sign-universal' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # required to create the tag and the GitHub Release
 
     steps:
       - uses: actions/download-artifact@v4
@@ -198,7 +201,8 @@ jobs:
       - name: Sign the release with itself
         # Dogfooding on purpose: the build being released is the thing that signs it, so a
         # regression in signing breaks the release loudly instead of shipping quietly
-        # broken signatures to everyone who installs the tool.
+        # broken signatures to everyone who installs the tool. On Linux, which is the
+        # point of the project — no Windows job in this pipeline.
         env:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_SIGNER_CLIENT_ID }}
@@ -235,3 +239,22 @@ jobs:
             --api-key "$NUGET_PUSH_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
+
+      - name: Create the GitHub Release
+        # The tag comes from the package that was actually built. Nerdbank.GitVersioning
+        # derives the version from version.json and git height, so a hand-typed tag can
+        # claim a version the package does not have; deriving it the other way round makes
+        # that impossible.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }} # gh infers the repo from this, with no checkout
+        run: |
+          package=$(ls artifacts/SignUniversal.Cli.*.nupkg | head -1)
+          version=$(basename "$package")
+          version=${version#SignUniversal.Cli.}
+          version=${version%.nupkg}
+          gh release create "v$version" \
+            --target "$GITHUB_SHA" \
+            --title "v$version" \
+            --generate-notes \
+            artifacts/*.nupkg
