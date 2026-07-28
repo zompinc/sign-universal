@@ -1,5 +1,3 @@
-using System.Formats.Asn1;
-
 namespace SignUniversal.Core.Authenticode;
 
 /// <summary>

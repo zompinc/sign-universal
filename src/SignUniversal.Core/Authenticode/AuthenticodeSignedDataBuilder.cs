@@ -1,8 +1,4 @@
-using System.Formats.Asn1;
-using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
-using System.Security.Cryptography.X509Certificates;
-using SignUniversal.Core.Signing;
 
 namespace SignUniversal.Core.Authenticode;
 

@@ -1,8 +1,6 @@
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
-using System.Security.Cryptography.X509Certificates;
 
 namespace SignUniversal.Core.Authenticode;
 

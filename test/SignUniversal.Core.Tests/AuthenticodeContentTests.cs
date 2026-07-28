@@ -1,9 +1,4 @@
 using System.Formats.Asn1;
-using System.Security.Cryptography;
-using System.Security.Cryptography.Pkcs;
-using FluentAssertions;
-using SignUniversal.Core.Authenticode;
-using TUnit.Core;
 
 namespace SignUniversal.Core.Tests;
 

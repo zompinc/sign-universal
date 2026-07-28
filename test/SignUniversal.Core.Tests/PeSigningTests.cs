@@ -1,9 +1,5 @@
 using System.Buffers.Binary;
 using System.Reflection.PortableExecutable;
-using System.Security.Cryptography;
-using FluentAssertions;
-using SignUniversal.Core.Authenticode;
-using TUnit.Core;
 
 namespace SignUniversal.Core.Tests;
 

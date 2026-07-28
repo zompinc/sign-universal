@@ -1,6 +1,4 @@
-using System.Security.Cryptography;
 using SignUniversal.Core.Authenticode;
-using SignUniversal.Core.Signing;
 
 namespace SignUniversal.Core.Msi;
 

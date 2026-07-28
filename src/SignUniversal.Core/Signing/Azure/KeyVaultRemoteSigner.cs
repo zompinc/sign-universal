@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using global::Azure.Core;
 using global::Azure.Identity;
 using global::Azure.Security.KeyVault.Certificates;

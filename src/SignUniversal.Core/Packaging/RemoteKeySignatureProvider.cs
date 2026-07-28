@@ -1,7 +1,6 @@
 using System.Security.Cryptography.Pkcs;
 using NuGet.Common;
 using NuGet.Packaging.Signing;
-using SignUniversal.Core.Signing;
 
 namespace SignUniversal.Core.Packaging;
 

@@ -1,7 +1,5 @@
-using System.Security.Cryptography.X509Certificates;
 using NuGet.Common;
 using NuGet.Packaging.Signing;
-using SignUniversal.Core.Signing;
 // Both libraries define HashAlgorithmName, so neither is left implicit here.
 using NuGetHashAlgorithmName = NuGet.Common.HashAlgorithmName;
 using SystemHashAlgorithmName = System.Security.Cryptography.HashAlgorithmName;

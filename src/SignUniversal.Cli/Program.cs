@@ -1,13 +1,11 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using Azure;
 using Azure.Identity;
 using NuGet.Packaging.Signing;
 using SignUniversal.Core.Authenticode;
 using SignUniversal.Core.Msi;
 using SignUniversal.Core.Packaging;
-using SignUniversal.Core.Signing;
 using SignUniversal.Core.Signing.Azure;
 
 namespace SignUniversal.Cli;

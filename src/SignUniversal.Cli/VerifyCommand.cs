@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using SignUniversal.Core.Authenticode;
 using SignUniversal.Core.Msi;

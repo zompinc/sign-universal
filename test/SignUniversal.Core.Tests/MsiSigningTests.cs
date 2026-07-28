@@ -1,10 +1,5 @@
-using System.Security.Cryptography;
-using System.Security.Cryptography.Pkcs;
-using FluentAssertions;
 using OpenMcdf;
-using SignUniversal.Core.Authenticode;
 using SignUniversal.Core.Msi;
-using TUnit.Core;
 
 namespace SignUniversal.Core.Tests;
 
