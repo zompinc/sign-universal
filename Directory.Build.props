@@ -30,7 +30,7 @@
     <Authors>Zomp Inc.</Authors>
     <Company>Zomp Inc.</Company>
     <Copyright>Copyright © Zomp Inc.</Copyright>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/zompinc/sign-universal</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zompinc/sign-universal</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
