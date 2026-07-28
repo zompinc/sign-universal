@@ -2,6 +2,8 @@ using System.Security.Cryptography.X509Certificates;
 using NuGet.Common;
 using NuGet.Packaging.Signing;
 using SignUniversal.Core.Signing;
+// Both libraries define HashAlgorithmName, so neither is left implicit here.
+using NuGetHashAlgorithmName = NuGet.Common.HashAlgorithmName;
 using SystemHashAlgorithmName = System.Security.Cryptography.HashAlgorithmName;
 
 namespace SignUniversal.Core.Packaging;
@@ -138,11 +140,11 @@ public static class NuGetPackageSigner
         }
     }
 
-    private static HashAlgorithmName MapHashAlgorithm(SystemHashAlgorithmName hashAlgorithm) => hashAlgorithm.Name switch
+    private static NuGetHashAlgorithmName MapHashAlgorithm(SystemHashAlgorithmName hashAlgorithm) => hashAlgorithm.Name switch
     {
-        "SHA256" => HashAlgorithmName.SHA256,
-        "SHA384" => HashAlgorithmName.SHA384,
-        "SHA512" => HashAlgorithmName.SHA512,
+        "SHA256" => NuGetHashAlgorithmName.SHA256,
+        "SHA384" => NuGetHashAlgorithmName.SHA384,
+        "SHA512" => NuGetHashAlgorithmName.SHA512,
         _ => throw new NotSupportedException(
             $"NuGet package signing supports SHA256, SHA384, and SHA512; '{hashAlgorithm.Name}' is not one of them."),
     };
