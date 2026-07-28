@@ -2,7 +2,7 @@
 
 Cross-platform code signing for .NET — sign Windows binaries (PE), installers (MSI), and **NuGet packages** from **Linux, macOS, or Windows**, with the private key held in **Azure Trusted Signing** or **Azure Key Vault** (the key never leaves the HSM).
 
-> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. Azure Key Vault is verified the same way. MSI signing works and its digest is validated against Microsoft-signed packages, but no Windows verifier has yet passed judgement on an MSI we produced.
+> **Status: working for NuGet packages and PE binaries.** Both are signed and RFC 3161 timestamped from Ubuntu with a key in Azure Trusted Signing, and both are gated by the tool that decides: `dotnet nuget verify` for packages, `signtool verify /pa` on Windows CI for PE. Azure Key Vault is verified the same way. **MSI is not usable yet**: its digest matches Microsoft-signed packages, but signtool rejects the MSIs we produce with `TRUST_E_BAD_DIGEST`, so something in the signing path is still wrong.
 
 ```bash
 # What this exists to make possible: signing on ubuntu-latest, key in Trusted Signing.
@@ -182,7 +182,7 @@ loudly instead of shipping quietly broken signatures to everyone who installs th
 | ✅ NuGet | author-signed `.nupkg` with a remote key | NuGet's libraries do the format; we do the key |
 | ✅ Trusted Signing | `IRemoteSigner` over the managed client | verified against a live account |
 | ✅ Azure Key Vault | `IRemoteSigner` via `CryptographyClient` | verified against a live vault |
-| ✅ MSI | compound-file digest + signature stream | digest matches Microsoft's; signtool gate still owed |
+| MSI | compound-file digest + signature stream | digest matches Microsoft's, **but signtool rejects our output** |
 | ✅ Timestamp | RFC 3161 for both formats | on by default; `--no-timestamp` opts out |
 | Verify | `signtool /verify` harness in CI | harness landed with PE; needs a Windows job |
 

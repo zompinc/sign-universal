@@ -43,11 +43,13 @@ jobs:
         run: dotnet run --project src/SignUniversal.Cli -c Release -- self-test
 
       - name: Locate the NuGet cache
-        # A directory of signed binaries for the digest oracle to check us against. Set
-        # from a shell rather than `env:`, which does no expansion — a literal "~" would
-        # simply not exist and the check would skip.
-        shell: bash
-        run: echo "SIGNUNIVERSAL_PE_CORPUS=$HOME/.nuget/packages" >> "$GITHUB_ENV"
+        # A directory of signed binaries for the digest oracle to check us against. It has
+        # to be a native path: bash on Windows reports $HOME as /c/Users/..., which .NET
+        # cannot resolve, so the check skipped there while looking green.
+        shell: pwsh
+        run: |
+          $cache = Join-Path $HOME ".nuget/packages"
+          "SIGNUNIVERSAL_PE_CORPUS=$cache" >> $env:GITHUB_ENV
 
       - name: Build an MSI fixture
         # WiX ships on the Windows images, so the MSI gate needs no committed binary and
@@ -73,6 +75,16 @@ jobs:
           # tests skip visibly rather than making every run depend on someone's uptime.
           SIGNUNIVERSAL_TIMESTAMP_TESTS: '1'
         run: dotnet run --project test/SignUniversal.Core.Tests -c Release
+
+      - name: Keep the MSI for diagnosis
+        # A signature Windows rejects is only debuggable with the artifact in hand.
+        if: ${{ failure() && runner.os == 'Windows' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: msi-fixture
+          path: ${{ runner.temp }}/sample.msi
+          retention-days: 5
+          if-no-files-found: ignore
 
   pack:
     name: pack
