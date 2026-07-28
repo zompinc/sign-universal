@@ -48,23 +48,13 @@ public static class MsiFile
 
         using IncrementalHash hash = IncrementalHash.CreateHash(hashAlgorithm);
 
-        List<EntryInfo> entries = root.EnumerateEntries().ToList();
-
         // The pre-hash comes first when the package carries one.
-        if (entries.Any(entry => entry.Name == ExtendedSignatureStreamName))
+        if (root.EnumerateEntries().Any(entry => entry.Name == ExtendedSignatureStreamName))
         {
             hash.AppendData(ReadStream(root, ExtendedSignatureStreamName));
         }
 
-        IEnumerable<EntryInfo> streams = entries
-            .Where(entry => entry.Type == EntryType.Stream)
-            .Where(entry => entry.Name != SignatureStreamName && entry.Name != ExtendedSignatureStreamName)
-            .OrderBy(entry => entry.Name, Utf16NameComparer.Instance);
-
-        foreach (EntryInfo entry in streams)
-        {
-            hash.AppendData(ReadStream(root, entry.Name));
-        }
+        AppendStorage(hash, root);
 
         // The root storage's class identifier closes the digest.
         hash.AppendData(root.EntryInfo.CLSID.ToByteArray());
@@ -130,6 +120,34 @@ public static class MsiFile
         }
 
         root.Flush(consolidate: false);
+    }
+
+    /// <summary>
+    /// Hashes one storage's streams in name order, descending into child storages as it
+    /// goes.
+    /// </summary>
+    /// <remarks>
+    /// The walk is recursive because a compound file is a tree. Packages carrying
+    /// transforms or embedded storages have one; the flat ones do not, which is exactly
+    /// how a non-recursive walk can look correct against a sample and be wrong in general.
+    /// </remarks>
+    private static void AppendStorage(IncrementalHash hash, Storage storage)
+    {
+        IEnumerable<EntryInfo> ordered = storage.EnumerateEntries()
+            .Where(entry => entry.Name != SignatureStreamName && entry.Name != ExtendedSignatureStreamName)
+            .OrderBy(entry => entry.Name, Utf16NameComparer.Instance);
+
+        foreach (EntryInfo entry in ordered)
+        {
+            if (entry.Type == EntryType.Storage)
+            {
+                AppendStorage(hash, storage.OpenStorage(entry.Name));
+            }
+            else
+            {
+                hash.AppendData(ReadStream(storage, entry.Name));
+            }
+        }
     }
 
     private static byte[] ReadStream(Storage storage, string name)
