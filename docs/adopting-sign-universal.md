@@ -21,7 +21,7 @@ operation redirected to Trusted Signing over HTTPS.
 ## The change
 
 The `sign` job keeps its name, its inputs, and its outputs. Only the runner and the
-signing command change, so `publish` — which consumes `packages-signed` — needs no edit.
+signing command change, so `publish` - which consumes `packages-signed` - needs no edit.
 
 ```diff
    sign:
@@ -108,7 +108,7 @@ as the previous tool did. Node is no longer needed by this job.
 nothing but `Certificate chain validation failed`. NuGet validates the signing
 certificate's chain against the machine's trust store before it will sign, and an
 untrusted root is fatal. Trusted Signing issues from *Microsoft Identity Verification Root
-Certificate Authority 2020*, which Linux trust stores do not carry — Ubuntu ships only the
+Certificate Authority 2020*, which Linux trust stores do not carry - Ubuntu ships only the
 Microsoft 2017 roots. Windows agents never hit this, which is why the requirement is
 invisible until the job moves. The flag installs that root into the **current user's**
 store only, taking it from the chain the signing service itself returned over an
@@ -129,7 +129,7 @@ three days, so an untimestamped signature expires almost immediately.
 
 ## Verifying the switch worked
 
-`dotnet nuget verify` should exit **0** on the signed packages — a full pass, chain and
+`dotnet nuget verify` should exit **0** on the signed packages - a full pass, chain and
 timestamp included. That is what the added step above checks, and it is worth keeping: it
 fails the build if a signature is ever produced that nobody downstream could validate.
 
@@ -143,7 +143,7 @@ Signature type: Author
 ## Rolling back
 
 Revert the job. Nothing else in the pipeline changes, the artifact names are the same, and
-the produced signatures are ordinary NuGet author signatures — packages signed by either
+the produced signatures are ordinary NuGet author signatures - packages signed by either
 tool are indistinguishable to consumers.
 
 ## One standing hazard, unrelated to this change
@@ -153,7 +153,7 @@ certificates every three days and nuget.org registers signing certificates by SH
 fingerprint, so a Trusted Signing certificate can never be registered
 ([NuGetGallery#10027](https://github.com/NuGet/NuGetGallery/issues/10027)). Pushing signed
 packages works today only because the account has *no* registered certificates. The moment
-one is registered, every future push must be signed with it — and these signatures never
+one is registered, every future push must be signed with it - and these signatures never
 will be, which would block publishing for every package on that account.
 
 ## Status of the tool
@@ -165,5 +165,5 @@ in Trusted Signing or Key Vault. Every format is gated in CI by the verifier tha
 It is versioned `1.0.x-alpha` and has not been used by anyone outside its own repository.
 The NuGet path is the best-exercised: it is what the tool was built for, it is verified
 against a live Trusted Signing account, and `sign-universal` signs its own releases with
-it. Treat the first run here as a test — check the artifact before it is published, not
+it. Treat the first run here as a test - check the artifact before it is published, not
 after.

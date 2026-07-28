@@ -16,7 +16,7 @@ namespace SignUniversal.Core.Packaging;
 /// hashing and for the zip surgery that inserts <c>.signature.p7s</c>; they are used
 /// as-is. The gap this class fills is narrower and more stubborn: <c>dotnet nuget sign</c>
 /// can only use a certificate whose private key is local, so a key held in Trusted
-/// Signing or Key Vault is unreachable — see <see cref="RemoteKeySignatureProvider"/>.
+/// Signing or Key Vault is unreachable - see <see cref="RemoteKeySignatureProvider"/>.
 /// </para>
 /// <para>
 /// Timestamping is not optional in practice. Trusted Signing issues certificates that
@@ -35,8 +35,8 @@ public static class NuGetPackageSigner
     /// <summary>The timestamp authority Microsoft documents for Trusted Signing.</summary>
     /// <remarks>
     /// Not the default, because it does not work on a stock Linux agent. Its responses
-    /// carry only the leaf and intermediate, and the root they chain to — Microsoft
-    /// Identity Verification Root Certificate Authority 2020 — is absent from the usual
+    /// carry only the leaf and intermediate, and the root they chain to - Microsoft
+    /// Identity Verification Root Certificate Authority 2020 - is absent from the usual
     /// Linux trust stores, so the chain cannot be built and signing fails outright.
     /// DigiCert's responses include the full chain to a root Ubuntu already trusts. Use
     /// this one only where that root has been installed.
@@ -72,13 +72,13 @@ public static class NuGetPackageSigner
 
         // SignPackageRequest.Dispose() disposes the certificate it was given, so it gets a
         // copy. Handing it the backend's own certificate would leave the signer unusable
-        // after one package — and signing a directory of packages is the normal case.
+        // after one package - and signing a directory of packages is the normal case.
         using X509Certificate2 certificate = new(signer.Certificate.RawData);
         using AuthorSignPackageRequest request = new(certificate, MapHashAlgorithm(hashAlgorithm));
 
         // NuGet builds the chain against the machine's trust store, which knows nothing
         // about the CAs a short-lived certificate is issued from. Seeding the backend's
-        // own chain here is what gets the intermediates embedded in the signature — without
+        // own chain here is what gets the intermediates embedded in the signature - without
         // them the package signs cleanly and then fails to verify on someone else's machine.
         foreach (X509Certificate2 issuer in signer.GetCertificateChain(cancellationToken))
         {

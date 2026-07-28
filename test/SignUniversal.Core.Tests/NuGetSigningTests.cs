@@ -7,7 +7,7 @@ namespace SignUniversal.Core.Tests;
 /// NuGet package signing with a key the process never holds.
 /// </summary>
 /// <remarks>
-/// The gate here is <c>dotnet nuget verify</c> — NuGet's own client passing judgement on
+/// The gate here is <c>dotnet nuget verify</c> - NuGet's own client passing judgement on
 /// our output. It runs everywhere, so unlike the Authenticode signtool gate this one
 /// actually executes on the Linux machine that produced the signature.
 /// </remarks>

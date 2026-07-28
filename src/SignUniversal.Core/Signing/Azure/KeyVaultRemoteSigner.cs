@@ -12,7 +12,7 @@ namespace SignUniversal.Core.Signing.Azure;
 /// <para>
 /// The certificate's public half is read from the vault and the private key stays in it:
 /// signing sends a digest to <c>CryptographyClient</c> and gets a signature back. A key
-/// marked non-exportable, or backed by a managed HSM, never leaves Azure at all — and
+/// marked non-exportable, or backed by a managed HSM, never leaves Azure at all - and
 /// nothing here would work any differently if it could.
 /// </para>
 /// <para>
@@ -65,7 +65,7 @@ public sealed class KeyVaultRemoteSigner : IRemoteSigner, IDisposable
     /// <inheritdoc />
     /// <remarks>
     /// The vault hands back only the leaf. Key Vault certificates are normally issued by a
-    /// public CA, so the issuers can be resolved locally — and embedding them is what lets
+    /// public CA, so the issuers can be resolved locally - and embedding them is what lets
     /// someone else validate the signature without chasing the chain themselves.
     /// </remarks>
     public IReadOnlyList<X509Certificate2> GetCertificateChain(CancellationToken cancellationToken = default)

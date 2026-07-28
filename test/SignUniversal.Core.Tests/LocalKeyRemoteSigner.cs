@@ -23,7 +23,7 @@ internal sealed class LocalKeyRemoteSigner : IRemoteSigner, IDisposable
             RSASignaturePadding.Pkcs1);
 
         // A realistic code-signing certificate. NuGet requires the code-signing EKU, and
-        // it prefers the subject key identifier as the signer identifier when present —
+        // it prefers the subject key identifier as the signer identifier when present -
         // so without these the tests would exercise a path production never takes.
         request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, critical: true));
         request.CertificateExtensions.Add(

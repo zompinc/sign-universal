@@ -21,7 +21,7 @@ namespace SignUniversal.Core.Authenticode;
 /// </remarks>
 public static class PeFile
 {
-    /// <summary>WIN_CERT_REVISION_2_0 — the only revision Authenticode uses.</summary>
+    /// <summary>WIN_CERT_REVISION_2_0 - the only revision Authenticode uses.</summary>
     private const ushort WinCertificateRevision2 = 0x0200;
 
     /// <summary>WIN_CERT_TYPE_PKCS_SIGNED_DATA.</summary>
@@ -67,7 +67,7 @@ public static class PeFile
             hashedBytes += section.Size;
         }
 
-        // Trailing data (appended resources, our own alignment padding) is hashed too —
+        // Trailing data (appended resources, our own alignment padding) is hashed too -
         // everything except the attribute certificate table.
         long trailingLength = fileLength - headers.CertificateTableSize - hashedBytes;
         if (trailingLength > 0)
@@ -165,7 +165,7 @@ public static class PeFile
         }
 
         // WIN_CERTIFICATE { dwLength, wRevision, wCertificateType, bCertificate[] }.
-        // dwLength covers the header and the 8-byte alignment padding — matching signtool,
+        // dwLength covers the header and the 8-byte alignment padding - matching signtool,
         // whose output always has dwLength equal to the data directory's Size.
         Span<byte> entryHeader = stackalloc byte[WinCertificateHeaderSize];
         BinaryPrimitives.WriteUInt32LittleEndian(entryHeader, (uint)paddedLength);

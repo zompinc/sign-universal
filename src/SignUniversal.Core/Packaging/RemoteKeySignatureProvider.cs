@@ -12,8 +12,8 @@ namespace SignUniversal.Core.Packaging;
 /// <para>
 /// NuGet's own <c>X509SignatureProvider</c> signs with the private key attached to the
 /// certificate, which a key in Trusted Signing or Key Vault cannot supply. This is a
-/// drop-in replacement: everything about the signature — the signer identifier, the
-/// signed attributes, the certificate chain, the digest algorithm — still comes from
+/// drop-in replacement: everything about the signature - the signer identifier, the
+/// signed attributes, the certificate chain, the digest algorithm - still comes from
 /// <see cref="SigningUtility"/>, so the output stays whatever NuGet says is correct.
 /// Only the key differs.
 /// </para>
@@ -66,7 +66,7 @@ internal sealed class RemoteKeySignatureProvider : ISignatureProvider
                 return signature;
             }
 
-            // The timestamp is taken over the signature value, hashed — not over the
+            // The timestamp is taken over the signature value, hashed - not over the
             // signature bytes themselves.
             byte[] hashedMessage = request.TimestampHashAlgorithm.ComputeHash(signature.GetSignatureValue());
             TimestampRequest timestampRequest = new(

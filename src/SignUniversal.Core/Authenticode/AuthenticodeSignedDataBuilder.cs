@@ -25,7 +25,7 @@ public static class AuthenticodeSignedDataBuilder
     /// <param name="hashAlgorithm">The digest/signature hash algorithm.</param>
     /// <param name="timestampUrl">
     /// The RFC 3161 authority to countersign with, or <see langword="null"/> to leave the
-    /// signature untimestamped — in which case it expires with the certificate.
+    /// signature untimestamped - in which case it expires with the certificate.
     /// </param>
     /// <param name="timestampTimeout">How long to wait on the authority.</param>
     /// <param name="subject">What kind of file the digest describes.</param>
@@ -50,7 +50,7 @@ public static class AuthenticodeSignedDataBuilder
         };
 
         // Authenticode's messageDigest attribute covers the *value octets* of
-        // SpcIndirectDataContent, not its whole TLV — the encapsulated content is this
+        // SpcIndirectDataContent, not its whole TLV - the encapsulated content is this
         // OCTET STRING with its tag swapped for a SEQUENCE (see AuthenticodeCms). Handing
         // SignedCms the value octets is what makes it compute the digest Windows expects.
         AsnDecoder.ReadSequence(spcContent, AsnEncodingRules.DER, out int valueOffset, out int valueLength, out _);
@@ -63,7 +63,7 @@ public static class AuthenticodeSignedDataBuilder
 
         // Pass the private key SEPARATELY (not via CopyWithPrivateKey). On Linux/OpenSSL,
         // CopyWithPrivateKey eagerly exports private parameters, which a remote key cannot
-        // provide; this overload signs through the supplied key's SignHash instead — the
+        // provide; this overload signs through the supplied key's SignHash instead - the
         // one operation we delegate to the backend.
         CmsSigner cmsSigner = new(SubjectIdentifierType.IssuerAndSerialNumber, signer.Certificate, remoteRsa)
         {
@@ -113,7 +113,7 @@ public static class AuthenticodeSignedDataBuilder
 
     /// <summary>
     /// Verifies that an encoded SignedData blob has a valid signature over its
-    /// content. Signature-only (no chain/trust) — suitable for the spike and for
+    /// content. Signature-only (no chain/trust) - suitable for the spike and for
     /// round-trip tests with self-signed certificates.
     /// </summary>
     /// <param name="encodedSignedData">The DER-encoded SignedData, in Authenticode form.</param>

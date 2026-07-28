@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace SignUniversal.Core.Tests;
 
 /// <summary>
-/// Verifies a signed package with <c>dotnet nuget verify</c> — NuGet's own client
+/// Verifies a signed package with <c>dotnet nuget verify</c> - NuGet's own client
 /// deciding whether our signature is acceptable.
 /// </summary>
 /// <remarks>

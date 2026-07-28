@@ -9,7 +9,7 @@ namespace SignUniversal.Core.Tests;
 /// </summary>
 /// <remarks>
 /// Getting this wrong produces a signature the vault computes happily and no verifier
-/// accepts — PS256 where RS256 was meant is a valid signature over the wrong scheme.
+/// accepts - PS256 where RS256 was meant is a valid signature over the wrong scheme.
 /// </remarks>
 public sealed class KeyVaultSignerTests
 {

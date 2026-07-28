@@ -46,7 +46,7 @@ public sealed class AuthenticodeContentTests
     [Test]
     public void MessageDigest_CoversTheContentValueOctets()
     {
-        // Authenticode's messageDigest skips the SpcIndirectDataContent header — the
+        // Authenticode's messageDigest skips the SpcIndirectDataContent header - the
         // consequence of the content being an OCTET STRING that was retagged.
         (byte[] signedData, _) = SignPeImage();
         ReadOnlyMemory<byte> content = ExtractEncapsulatedContent(signedData);
@@ -77,7 +77,7 @@ public sealed class AuthenticodeContentTests
             .Cast<CryptographicAttributeObject>()
             .Single(attribute => attribute.Oid.Value == "1.3.6.1.4.1.311.2.1.11");
 
-        // SEQUENCE { OID 1.3.6.1.4.1.311.2.1.21 } — individualCodeSigning, byte for byte
+        // SEQUENCE { OID 1.3.6.1.4.1.311.2.1.21 } - individualCodeSigning, byte for byte
         // what signtool emits.
         Convert.ToHexString(statementType.Values[0].RawData).ToLowerInvariant()
             .Should().Be("300c060a2b060104018237020115");

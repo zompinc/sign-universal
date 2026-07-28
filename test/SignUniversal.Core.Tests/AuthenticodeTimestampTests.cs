@@ -3,7 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 namespace SignUniversal.Core.Tests;
 
 /// <summary>
-/// RFC 3161 timestamping for Authenticode — what lets a signature outlive the
+/// RFC 3161 timestamping for Authenticode - what lets a signature outlive the
 /// certificate that made it.
 /// </summary>
 /// <remarks>

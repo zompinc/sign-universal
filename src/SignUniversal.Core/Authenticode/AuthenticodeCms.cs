@@ -12,7 +12,7 @@ namespace SignUniversal.Core.Authenticode;
 /// <c>SpcIndirectDataContent</c> SEQUENCE directly: <c>[0] { SEQUENCE value }</c>.
 /// </para>
 /// <para>
-/// The value octets are identical in both forms — only the tag changes — which is
+/// The value octets are identical in both forms - only the tag changes - which is
 /// also why Authenticode's <c>messageDigest</c> attribute covers the contents of
 /// <c>SpcIndirectDataContent</c> rather than its full TLV. Feeding
 /// <see cref="System.Security.Cryptography.Pkcs.SignedCms"/> those value octets

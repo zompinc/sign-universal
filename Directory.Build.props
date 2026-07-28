@@ -18,8 +18,8 @@
 
     <!--
       net8.0 is the floor, not the ceiling. The default roll-forward policy will not cross
-      a major version, so without this anything executable here — the tool a user installs,
-      and the test host on a CI runner — refuses to start on a machine carrying only a
+      a major version, so without this anything executable here - the tool a user installs,
+      and the test host on a CI runner - refuses to start on a machine carrying only a
       newer runtime, with "You must install or update .NET".
     -->
     <RollForward>LatestMajor</RollForward>
