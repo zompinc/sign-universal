@@ -130,6 +130,33 @@ public sealed class NuGetSigningTests
     }
 
     [Test]
+    public async Task Sign_UsesTheCertificateTheBackendExposes()
+    {
+        // What --export-certificate writes is the backend's certificate, and a gallery that
+        // requires registration matches on that certificate's fingerprint. So the one the
+        // backend exposes has to be the one that ends up in the signature.
+        using TemporaryDirectory directory = new();
+        string package = TestPackage.Create(directory.Path);
+        using LocalKeyRemoteSigner signer = new();
+
+        await NuGetPackageSigner.SignFileAsync(package, signer, HashAlgorithmName.SHA256, timestampUrl: null);
+
+        using ZipArchive archive = ZipFile.OpenRead(package);
+        using MemoryStream buffer = new();
+        using (Stream entryStream = archive.GetEntry(SignatureEntry)!.Open())
+        {
+            entryStream.CopyTo(buffer);
+        }
+
+        SignedCms cms = new();
+        cms.Decode(buffer.ToArray());
+
+        cms.SignerInfos[0].Certificate!.RawData.Should().Equal(
+            signer.Certificate.RawData,
+            "the exported certificate must be the one that signed");
+    }
+
+    [Test]
     public async Task Sign_RejectsAnUnsupportedHashAlgorithm()
     {
         using TemporaryDirectory directory = new();

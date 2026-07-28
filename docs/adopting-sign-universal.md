@@ -146,15 +146,27 @@ Revert the job. Nothing else in the pipeline changes, the artifact names are the
 the produced signatures are ordinary NuGet author signatures - packages signed by either
 tool are indistinguishable to consumers.
 
-## One standing hazard, unrelated to this change
+## Registering the certificate on nuget.org
 
-**Never register a certificate on the nuget.org account.** Trusted Signing rotates
-certificates every three days and nuget.org registers signing certificates by SHA-256
-fingerprint, so a Trusted Signing certificate can never be registered
-([NuGetGallery#10027](https://github.com/NuGet/NuGetGallery/issues/10027)). Pushing signed
-packages works today only because the account has *no* registered certificates. The moment
-one is registered, every future push must be signed with it - and these signatures never
-will be, which would block publishing for every package on that account.
+Unrelated to this change, but part of the same release day. If the nuget.org account has
+registered certificates, the gallery requires every push to be signed with one of them.
+Trusted Signing's certificate is short-lived, so whichever one is current has to be
+registered as it rotates, and there is no API for it
+([NuGetGallery#10027](https://github.com/NuGet/NuGetGallery/issues/10027)).
+
+Signing with `--export-certificate` writes out exactly the certificate that signed the
+package, so there is no need to extract it from the package afterwards:
+
+```bash
+sign-universal sign packages/*.nupkg --trust-signing-root \
+  --export-certificate signing.cer \
+  --trusted-signing-endpoint "..." --trusted-signing-account "..." \
+  --trusted-signing-certificate-profile "..."
+```
+
+Upload `signing.cer` under Account settings -> Certificates before pushing. A long-lived
+certificate in Key Vault avoids the repetition entirely, at the cost of managing renewals
+yourself.
 
 ## Status of the tool
 
