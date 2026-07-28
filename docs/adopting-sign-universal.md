@@ -62,7 +62,7 @@ signing command change, so `publish` - which consumes `packages-signed` - needs 
            path: packages
 
 +      - name: Install the signing tool
-+        run: dotnet tool install --global SignUniversal.Cli --prerelease
++        run: dotnet tool install --global SignUniversal --prerelease
 +
        - name: Sign
          env:

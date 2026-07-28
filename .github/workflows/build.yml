@@ -129,7 +129,7 @@ jobs:
 
       - name: Install the packed tool
         run: |
-          dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli
+          dotnet tool install --global --add-source artifacts --prerelease SignUniversal
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Smoke-test the installed tool
@@ -195,7 +195,7 @@ jobs:
 
       - name: Install the release that is about to be published
         run: |
-          dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli
+          dotnet tool install --global --add-source artifacts --prerelease SignUniversal
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Sign the release with itself
@@ -249,9 +249,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }} # gh infers the repo from this, with no checkout
         run: |
-          package=$(ls artifacts/SignUniversal.Cli.*.nupkg | head -1)
+          package=$(ls artifacts/SignUniversal.*.nupkg | head -1)
           version=$(basename "$package")
-          version=${version#SignUniversal.Cli.}
+          version=${version#SignUniversal.}
           version=${version%.nupkg}
           gh release create "v$version" \
             --target "$GITHUB_SHA" \
