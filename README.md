@@ -255,6 +255,12 @@ src/SignUniversal.Cli     dotnet tool (`sign-universal`)
 test/SignUniversal.Core.Tests
 ```
 
+## Adopting it
+
+Moving an existing `windows-latest` signing job to Linux is a small diff, with two
+non-obvious requirements that will otherwise cost an afternoon. See
+[`docs/adopting-sign-universal.md`](docs/adopting-sign-universal.md).
+
 ## Prior art & credit
 
 Design and format handling are informed by **jsign** (Apache-2.0) — see [`NOTICE`](NOTICE). Licensed Apache-2.0 (see [`LICENSE`](LICENSE)).
