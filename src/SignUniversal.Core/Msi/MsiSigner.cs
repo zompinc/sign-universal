@@ -29,6 +29,11 @@ public static class MsiSigner
         // has to go before the digest is taken rather than after.
         MsiFile.PrepareForSigning(compoundFile);
 
+        // Then a fresh pre-hash over the package's metadata, which the digest covers in
+        // turn. signtool writes one unconditionally and Windows rejects the signature
+        // without it, so this is not optional.
+        MsiFile.WriteMetadataPreHash(compoundFile, hashAlgorithm);
+
         byte[] digest = MsiFile.ComputeAuthenticodeDigest(compoundFile, hashAlgorithm);
         byte[] signedData = AuthenticodeSignedDataBuilder.Build(
             signer, digest, hashAlgorithm, timestampUrl, timestampTimeout: null, subject: SignedSubject.Msi);

@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using OpenMcdf;
@@ -62,6 +63,68 @@ public static class MsiFile
         return hash.GetHashAndReset();
     }
 
+    /// <summary>
+    /// Computes the pre-hash over the package's metadata — what goes in the
+    /// <c>MsiDigitalSignatureEx</c> stream.
+    /// </summary>
+    /// <param name="compoundFile">The MSI file stream.</param>
+    /// <param name="hashAlgorithm">The digest algorithm.</param>
+    /// <returns>The pre-hash.</returns>
+    /// <remarks>
+    /// <para>
+    /// Where the main digest covers stream <em>contents</em>, this covers their
+    /// <em>descriptions</em>: names, sizes, class identifiers, state bits, and timestamps.
+    /// Together they mean a package cannot be altered by rearranging or renaming its parts
+    /// any more than by editing them.
+    /// </para>
+    /// <para>
+    /// The layout was derived by reproducing the pre-hash signtool itself wrote for a
+    /// package, then confirmed against a second, unrelated signed package. It reads the
+    /// directory entries directly because the fields it needs — state bits especially —
+    /// are not surfaced by the compound-file reader.
+    /// </para>
+    /// </remarks>
+    public static byte[] ComputeMetadataPreHash(Stream compoundFile, HashAlgorithmName hashAlgorithm)
+    {
+        ArgumentNullException.ThrowIfNull(compoundFile);
+
+        List<byte[]> directory = ReadDirectoryEntries(compoundFile);
+
+        byte[]? root = directory.FirstOrDefault(entry => entry[EntryTypeOffset] == RootEntryType)
+            ?? throw new InvalidDataException("The compound file has no root directory entry.");
+
+        using IncrementalHash hash = IncrementalHash.CreateHash(hashAlgorithm);
+
+        // The root contributes only its identity, not a name.
+        hash.AppendData(root, ClassIdOffset, ClassIdLength);
+        hash.AppendData(root, StateBitsOffset, StateBitsLength);
+
+        IEnumerable<byte[]> ordered = directory
+            .Where(entry => entry[EntryTypeOffset] is StorageEntryType or StreamEntryType)
+            .Where(entry => EntryName(entry) is not (SignatureStreamName or ExtendedSignatureStreamName))
+            .OrderBy(EntryName, Utf16NameComparer.Instance);
+
+        foreach (byte[] entry in ordered)
+        {
+            hash.AppendData(entry, 0, NameLength(entry));
+
+            if (entry[EntryTypeOffset] == StorageEntryType)
+            {
+                hash.AppendData(entry, ClassIdOffset, ClassIdLength);
+            }
+            else
+            {
+                hash.AppendData(entry, StreamSizeOffset, 4);
+            }
+
+            hash.AppendData(entry, StateBitsOffset, StateBitsLength);
+            hash.AppendData(entry, CreationTimeOffset, 8);
+            hash.AppendData(entry, ModifiedTimeOffset, 8);
+        }
+
+        return hash.GetHashAndReset();
+    }
+
     /// <summary>Reads the PKCS#7 SignedData embedded in an MSI, if any.</summary>
     /// <param name="compoundFile">The MSI file stream.</param>
     /// <returns>The DER-encoded SignedData, or <see langword="null"/> when unsigned.</returns>
@@ -96,6 +159,39 @@ public static class MsiFile
         // Non-transacted storage writes through to the underlying stream; Flush pushes the
         // directory changes out without waiting for disposal.
         root.Flush(consolidate: false);
+    }
+
+    /// <summary>Computes the metadata pre-hash and writes it into the package.</summary>
+    /// <param name="compoundFile">A readable, writable MSI file stream.</param>
+    /// <param name="hashAlgorithm">The digest algorithm.</param>
+    /// <returns>The pre-hash that was written.</returns>
+    /// <remarks>
+    /// Must happen before the digest is computed, because the digest covers this stream's
+    /// contents. signtool writes one unconditionally, so packages we sign carry one too.
+    /// </remarks>
+    public static byte[] WriteMetadataPreHash(Stream compoundFile, HashAlgorithmName hashAlgorithm)
+    {
+        ArgumentNullException.ThrowIfNull(compoundFile);
+
+        byte[] preHash = ComputeMetadataPreHash(compoundFile, hashAlgorithm);
+
+        compoundFile.Position = 0;
+        using (RootStorage root = RootStorage.Open(compoundFile, StorageModeFlags.LeaveOpen))
+        {
+            if (root.ContainsEntry(ExtendedSignatureStreamName))
+            {
+                root.Delete(ExtendedSignatureStreamName);
+            }
+
+            using (CfbStream stream = root.CreateStream(ExtendedSignatureStreamName))
+            {
+                stream.Write(preHash, 0, preHash.Length);
+            }
+
+            root.Flush(consolidate: false);
+        }
+
+        return preHash;
     }
 
     /// <summary>Writes a PKCS#7 SignedData blob into the package's signature stream.</summary>
@@ -148,6 +244,83 @@ public static class MsiFile
                 hash.AppendData(ReadStream(storage, entry.Name));
             }
         }
+    }
+
+    private const int DirectoryEntrySize = 128;
+    private const int NameLengthOffset = 0x40;
+    private const int EntryTypeOffset = 0x42;
+    private const int ClassIdOffset = 0x50;
+    private const int ClassIdLength = 16;
+    private const int StateBitsOffset = 0x60;
+    private const int StateBitsLength = 4;
+    private const int CreationTimeOffset = 0x64;
+    private const int ModifiedTimeOffset = 0x6C;
+    private const int StreamSizeOffset = 0x78;
+    private const byte StorageEntryType = 1;
+    private const byte StreamEntryType = 2;
+    private const byte RootEntryType = 5;
+
+    private static int NameLength(byte[] entry) =>
+        Math.Max(0, BinaryPrimitives.ReadUInt16LittleEndian(entry.AsSpan(NameLengthOffset)) - 2);
+
+    private static string EntryName(byte[] entry) =>
+        Encoding.Unicode.GetString(entry, 0, NameLength(entry));
+
+    /// <summary>Walks the compound file's directory chain and returns the raw entries.</summary>
+    private static List<byte[]> ReadDirectoryEntries(Stream compoundFile)
+    {
+        byte[] header = new byte[512];
+        compoundFile.Position = 0;
+        compoundFile.ReadExactly(header);
+
+        int sectorSize = 1 << BinaryPrimitives.ReadUInt16LittleEndian(header.AsSpan(0x1E));
+        uint sector = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(0x30));
+
+        List<byte[]> entries = [];
+        HashSet<uint> visited = [];
+        byte[] buffer = new byte[sectorSize];
+
+        while (sector < 0xFFFFFFF0 && visited.Add(sector))
+        {
+            compoundFile.Position = (long)(sector + 1) * sectorSize;
+            compoundFile.ReadExactly(buffer);
+
+            for (int offset = 0; offset + DirectoryEntrySize <= sectorSize; offset += DirectoryEntrySize)
+            {
+                if (buffer[offset + EntryTypeOffset] != 0)
+                {
+                    entries.Add(buffer.AsSpan(offset, DirectoryEntrySize).ToArray());
+                }
+            }
+
+            sector = NextSector(compoundFile, header, sectorSize, sector);
+        }
+
+        return entries;
+    }
+
+    /// <summary>Follows the FAT to the next sector in a chain.</summary>
+    /// <remarks>
+    /// Only the 109 FAT sector pointers in the header are consulted. That covers packages
+    /// into the hundreds of megabytes; a larger one would need the DIFAT chain, and is
+    /// rejected rather than silently mis-hashed.
+    /// </remarks>
+    private static uint NextSector(Stream compoundFile, byte[] header, int sectorSize, uint sector)
+    {
+        int perSector = sectorSize / 4;
+        int fatIndex = (int)(sector / perSector);
+
+        if (fatIndex >= 109)
+        {
+            throw new NotSupportedException(
+                "The package's directory extends beyond the header's FAT pointers; DIFAT chains are not supported yet.");
+        }
+
+        uint fatSector = BinaryPrimitives.ReadUInt32LittleEndian(header.AsSpan(0x4C + (4 * fatIndex)));
+        byte[] slot = new byte[4];
+        compoundFile.Position = ((long)(fatSector + 1) * sectorSize) + (4 * (sector % perSector));
+        compoundFile.ReadExactly(slot);
+        return BinaryPrimitives.ReadUInt32LittleEndian(slot);
     }
 
     private static byte[] ReadStream(Storage storage, string name)

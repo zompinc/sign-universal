@@ -122,6 +122,46 @@ public sealed class MsiSigningTests
     }
 
     [Test]
+    public void PreHash_MatchesTheOne_InsideARealSignedPackage()
+    {
+        string? oracle = Environment.GetEnvironmentVariable("SIGNUNIVERSAL_MSI_ORACLE");
+        Skip.Unless(
+            !string.IsNullOrEmpty(oracle) && File.Exists(oracle),
+            "set SIGNUNIVERSAL_MSI_ORACLE to a signed .msi carrying a pre-hash");
+
+        using FileStream package = File.OpenRead(oracle!);
+        using RootStorage root = RootStorage.OpenRead(oracle!);
+
+        Skip.Unless(
+            root.ContainsEntry(MsiFile.ExtendedSignatureStreamName),
+            "the oracle package carries no pre-hash stream");
+
+        byte[] stored;
+        using (CfbStream stream = root.OpenStream(MsiFile.ExtendedSignatureStreamName))
+        {
+            stored = new byte[stream.Length];
+            stream.ReadExactly(stored);
+        }
+
+        MsiFile.ComputeMetadataPreHash(package, HashAlgorithmName.SHA256)
+            .Should().Equal(stored, "the pre-hash covers metadata the publisher also hashed");
+    }
+
+    [Test]
+    public void Sign_WritesThePreHashTheDigestCovers()
+    {
+        using TemporaryDirectory directory = new();
+        string path = CreatePackage(directory.Path);
+        using LocalKeyRemoteSigner signer = new();
+
+        MsiSigner.SignFile(path, signer, HashAlgorithmName.SHA256);
+
+        using RootStorage root = RootStorage.OpenRead(path);
+        root.ContainsEntry(MsiFile.ExtendedSignatureStreamName).Should().BeTrue(
+            "Windows rejects the signature outright when the pre-hash is missing");
+    }
+
+    [Test]
     public void SignedPackage_IsAcceptedBySigntool()
     {
         // The gate MSI has been missing. CI authors a real installer with WiX so signtool
