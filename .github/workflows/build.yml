@@ -64,6 +64,32 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "light failed" }
           "SIGNUNIVERSAL_MSI_FIXTURE=$env:RUNNER_TEMP\sample.msi" >> $env:GITHUB_ENV
 
+      - name: Sign the MSI fixture with signtool
+        # Ground truth for this exact package: signtool's own signature carries the digest
+        # Windows expects, so ours can be diffed against it instead of guessed at.
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          $tool = (Get-ChildItem "C:/Program Files (x86)/Windows Kits/10/bin/*/x64/signtool.exe" |
+                   Sort-Object FullName -Descending | Select-Object -First 1).FullName
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert `
+            -Subject "CN=sign-universal signtool oracle" `
+            -CertStoreLocation Cert:\CurrentUser\My -KeyAlgorithm RSA -KeyLength 2048
+          Copy-Item "$env:RUNNER_TEMP/sample.msi" "$env:RUNNER_TEMP/signtool-signed.msi"
+          & $tool sign /fd SHA256 /sha1 $cert.Thumbprint "$env:RUNNER_TEMP/signtool-signed.msi"
+          if ($LASTEXITCODE -ne 0) { throw "signtool sign failed" }
+
+      - name: Keep signtool's signed MSI
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: signtool-oracle
+          path: |
+            ${{ runner.temp }}/signtool-signed.msi
+            ${{ runner.temp }}/sample.msi
+          retention-days: 5
+          if-no-files-found: ignore
+
       - name: Test
         env:
           # The signtool gate is the only check that can decide whether our Authenticode
