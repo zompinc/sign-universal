@@ -46,6 +46,28 @@ between two builds of the same commit is not reproducible.
 - **The workflow runs under `act`.** It caught both roll-forward bugs before they ever
   reached a runner; run `act push -j pack --matrix os:ubuntu-latest` before touching CI.
 
+## Releasing
+
+Run the **build** workflow from master with *Run workflow*. It packs, signs the packages
+with Trusted Signing using the build being released, verifies them with
+`dotnet nuget verify`, pushes to nuget.org, then creates the tag and GitHub Release.
+
+- **The release signs itself.** The `publish` job installs the very build being released
+  and signs with it, so a regression in signing breaks the release loudly instead of
+  shipping broken signatures to everyone who installs the tool.
+- **The tag is derived from the package, not typed.** Nerdbank.GitVersioning takes the
+  version from `version.json` and git height, so a hand-written tag can claim a version the
+  package does not have. Deriving it the other way round makes that impossible - and means
+  the version lives in `version.json`, nowhere else.
+
+## Layout
+
+```text
+src/SignUniversal.Core    signing engine
+src/SignUniversal.Cli     dotnet tool, published as `SignUniversal` (`sign-universal`)
+test/SignUniversal.Core.Tests
+```
+
 ## Security posture (non-negotiable)
 
 - This is a **signing tool**. The private key must never be exported or logged. The
@@ -59,6 +81,11 @@ between two builds of the same commit is not reproducible.
 Each of these was established against real Microsoft-signed binaries, not inferred from
 the spec. They look like quirks; they are load-bearing.
 
+1. **`X509Certificate2.CopyWithPrivateKey` cannot be used.** On Linux it eagerly exports
+   private parameters, which a remote key cannot provide. The private-key operation is
+   delegated through `RemoteSigningRsa`, whose `SignHash` calls the backend, handed to the
+   `CmsSigner(SubjectIdentifierType, certificate, privateKey)` overload. This is the
+   assumption the whole design rests on, and `self-test` exists to prove it still holds.
 1. **The encapsulated content is an OCTET STRING that has been retagged as a SEQUENCE.**
    `SignedCms` always writes `[0] { OCTET STRING v }`; Authenticode needs
    `[0] { SEQUENCE v }`. `AuthenticodeCms` converts between the two, and
