@@ -47,8 +47,7 @@ sign-universal --version
 Needs .NET 8 or newer — the tool targets `net8.0` but rolls forward, so a machine carrying
 only a later runtime is fine.
 
-> Publishing happens from CI on a `v*` tag. Until the first tag lands there is nothing on
-> nuget.org yet; build it locally with
+> Nothing is on nuget.org yet. Until the first release, build it locally with
 > `dotnet pack src/SignUniversal.Cli -c Release -o artifacts` and
 > `dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli`.
 
@@ -161,6 +160,18 @@ sign-universal sign app.exe --pfx signing.pfx --password ****   # or --self-sign
 The file is signed in place: an existing signature is replaced, the image is padded to
 the 8-byte boundary the certificate table needs, the PKCS#7 blob is appended as a
 `WIN_CERTIFICATE`, the data directory is repointed, and the PE checksum is refreshed.
+
+## Cutting a release
+
+Run the **build** workflow from master with *Run workflow*. It packs, signs the packages
+with Trusted Signing using the build being released, verifies them, pushes to nuget.org,
+and creates the GitHub Release.
+
+The tag is derived from the package that was built, not typed. Nerdbank.GitVersioning
+takes the version from `version.json` and git height, so a hand-written tag can claim a
+version the package does not have — deriving it the other way round makes that
+impossible. The corollary is that the version lives in `version.json`: while it says
+`1.0-alpha`, every release is a prerelease.
 
 ## Releases sign themselves
 
