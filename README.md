@@ -85,6 +85,12 @@ Two requirements are invisible until you try it, and each costs an afternoon:
 [`docs/adopting-sign-universal.md`](docs/adopting-sign-universal.md) has the full change,
 which is two lines of workflow plus those flags.
 
+It is also quicker. Moving `Zomp.SyncMethodGenerator`'s signing job to Linux took it from
+51-90s to 10-12s, measured across the same job before and after. Most of that is runner
+startup rather than signing - the same job with signing skipped still costs about 48s on
+`windows-latest` against 10s on `ubuntu-latest` - and GitHub bills Windows minutes at twice
+the rate, so a private repository pays the difference twice over.
+
 ## Correctness
 
 Authenticode is a format you cannot get *almost* right, and the verifier that decides is

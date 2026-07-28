@@ -49,6 +49,11 @@ Credentials are unchanged. `DefaultAzureCredential` reads the same `AZURE_TENANT
 Anything the job carried only to satisfy Windows - a Node install, a Git-bash path shim,
 `shell:` overrides - can go with it.
 
+Expect it to get quicker, too. On `Zomp.SyncMethodGenerator` the same job went from 51-90s
+to 10-12s. Most of that is runner startup rather than signing: with the signing step
+skipped it still cost about 48s on `windows-latest` and about 10s on `ubuntu-latest`.
+Windows minutes are also billed at twice the rate, so a private repository saves on both.
+
 ## Two things that will otherwise cost you an afternoon
 
 **`--trust-signing-root` is not optional on Linux.** Without it, signing fails with nothing
