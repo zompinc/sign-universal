@@ -180,14 +180,15 @@ The `publish` job installs the very build being released and uses it to sign its
 verify`, and only then pushes. A regression in signing therefore breaks the release
 loudly instead of shipping quietly broken signatures to everyone who installs the tool.
 
-> **Do not register a certificate on the nuget.org account.** Trusted Signing rotates its
-> certificate every three days, and nuget.org registers signing certificates by SHA-256
-> fingerprint - so a Trusted Signing certificate cannot be registered
-> ([NuGetGallery#10027](https://github.com/NuGet/NuGetGallery/issues/10027)). Pushing
-> signed packages works fine while the account has *no* registered certificates. The
-> moment one is registered, every future push must match it, and these signatures never
-> will - which would break publishing for every package on that account, not just this
-> one.
+> **Registering the certificate on nuget.org is a per-release chore.** Once an account has
+> a registered certificate, nuget.org requires every future push to be signed with one of
+> them - which is the point, and is how you get the gallery to enforce that a package came
+> from you. Trusted Signing complicates it: its certificate is short-lived, so the current
+> one has to be registered again as it rotates, and there is no API for doing so
+> ([NuGetGallery#10027](https://github.com/NuGet/NuGetGallery/issues/10027)). Sign with
+> `--export-certificate` to get the exact certificate that signed the package, then upload
+> that. The alternative is a long-lived certificate in Key Vault, which can be registered
+> once.
 
 ## Checking a signature
 

@@ -59,6 +59,9 @@ internal static class Program
 
             sign options:
               --hash <algorithm>  Digest algorithm: sha256 (default), sha384, or sha512.
+              --export-certificate <path>
+                                  Write the signing certificate out in DER form, for
+                                  registering with a gallery that requires it.
               --timestamper <url> RFC 3161 authority. Defaults to
                                   http://timestamp.digicert.com. Microsoft's
                                   timestamp.acs.microsoft.com does not chain on a stock
@@ -102,6 +105,7 @@ internal static class Program
         string? certificateProfile = null;
         string? keyVaultUrl = null;
         string? keyVaultCertificate = null;
+        string? exportCertificatePath = null;
         string? timestamper = null;
         string hashName = "sha256";
         bool selfSigned = false;
@@ -136,6 +140,9 @@ internal static class Program
                     break;
                 case "--key-vault-certificate":
                     if (!TryTakeValue(args, ref i, out keyVaultCertificate)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                case "--export-certificate":
+                    if (!TryTakeValue(args, ref i, out exportCertificatePath)) return UsageError($"'{argument}' needs a value.");
                     break;
                 case "--timestamper":
                     if (!TryTakeValue(args, ref i, out timestamper)) return UsageError($"'{argument}' needs a value.");
@@ -257,6 +264,11 @@ internal static class Program
             {
                 Console.WriteLine($"Certificate: {signer.Certificate.Subject}");
 
+                if (exportCertificatePath is not null)
+                {
+                    ExportCertificate(signer, exportCertificatePath);
+                }
+
                 if (trustSigningRoot)
                 {
                     SigningRootTrust.Install(signer);
@@ -336,6 +348,24 @@ internal static class Program
         Console.Error.WriteLine(
             "WARNING: --no-timestamp means this signature stops validating when the signing " +
             $"certificate expires - {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
+    }
+
+    /// <summary>
+    /// Writes the signing certificate out in DER form, which is the shape nuget.org wants
+    /// when registering one.
+    /// </summary>
+    /// <remarks>
+    /// A backend that mints short-lived certificates hands out a different one every couple
+    /// of days, and a gallery that enforces registration needs whichever is current. Taking
+    /// it from the process that just signed removes the step of digging it back out of the
+    /// signed artifact afterwards, and removes the chance of exporting the wrong one.
+    /// </remarks>
+    private static void ExportCertificate(IRemoteSigner signer, string path)
+    {
+        File.WriteAllBytes(path, signer.Certificate.RawData);
+
+        Console.WriteLine($"  certificate written to {path}");
+        Console.WriteLine($"  valid until:      {signer.Certificate.NotAfter:u}");
     }
 
     private static bool IsMsi(string path) =>
