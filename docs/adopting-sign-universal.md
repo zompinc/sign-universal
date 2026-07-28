@@ -30,7 +30,7 @@ and swap the signing command:
 ```diff
 -          dotnet dnx --prerelease --yes sign code trusted-signing \
 -            --base-directory "$GITHUB_WORKSPACE/packages" "*.nupkg" \
-+          dotnet dnx SignUniversal@1.0.26-alpha --yes sign packages/*.nupkg \
++          dotnet dnx SignUniversal.Cli@1.0.31-alpha --yes sign packages/*.nupkg \
 +            --trust-signing-root \
              --trusted-signing-endpoint "${{ secrets.TRUSTED_SIGNING_ENDPOINT }}" \
              --trusted-signing-account "${{ secrets.TRUSTED_SIGNING_ACCOUNT }}" \
@@ -39,7 +39,7 @@ and swap the signing command:
 
 `dotnet dnx` runs a tool without installing it, the same way the previous command did, so
 no separate install step is needed. Pin the version: the thing signing your releases should
-not change unless you choose to change it. (`dotnet tool install --global SignUniversal`,
+not change unless you choose to change it. (`dotnet tool install --global SignUniversal.Cli`,
 or a `dotnet-tools.json` manifest with `dotnet tool restore`, work equally well if the
 pipeline already uses one of those.)
 
@@ -105,7 +105,7 @@ Signing with `--export-certificate` writes out exactly the certificate that sign
 there is no need to extract it from the package afterwards:
 
 ```bash
-dotnet dnx SignUniversal@1.0.26-alpha --yes sign packages/*.nupkg \
+dotnet dnx SignUniversal.Cli@1.0.31-alpha --yes sign packages/*.nupkg \
   --trust-signing-root --export-certificate signing.cer \
   --trusted-signing-endpoint "..." --trusted-signing-account "..." \
   --trusted-signing-certificate-profile "..."

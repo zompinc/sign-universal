@@ -125,11 +125,13 @@ jobs:
           global-json-file: global.json
 
       - name: Pack
-        run: dotnet pack src/SignUniversal.Cli -c Release -o artifacts
+        # The whole solution: the tool plus the three libraries. Test projects set
+        # IsPackable=false, so this produces exactly the shipping set.
+        run: dotnet pack -c Release -o artifacts
 
       - name: Install the packed tool
         run: |
-          dotnet tool install --global --add-source artifacts --prerelease SignUniversal
+          dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Smoke-test the installed tool
@@ -195,7 +197,7 @@ jobs:
 
       - name: Install the release that is about to be published
         run: |
-          dotnet tool install --global --add-source artifacts --prerelease SignUniversal
+          dotnet tool install --global --add-source artifacts --prerelease SignUniversal.Cli
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Sign the release with itself

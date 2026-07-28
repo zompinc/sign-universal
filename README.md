@@ -30,12 +30,12 @@ cross-platform and is excellent, but requires a JVM and does not do NuGet packag
 ## Install
 
 ```bash
-dotnet tool install --global SignUniversal
+dotnet tool install --global SignUniversal.Cli
 sign-universal --version
 ```
 
 Needs .NET 8 or newer; the tool targets `net8.0` and rolls forward. `dotnet dnx
-SignUniversal@<version>` runs it without installing, which suits CI.
+SignUniversal.Cli@<version>` runs it without installing, which suits CI.
 
 ## Use
 
@@ -55,6 +55,31 @@ which already decide it properly.
 For packages, the hashing and the zip surgery that inserts `.signature.p7s` are NuGet's own
 libraries - the format's reference implementation. All this adds is the one thing they
 cannot do: a CMS signature from a key it never holds.
+
+## Use as a library
+
+The engine ships separately from the tool, so another program can sign without shelling
+out to a process:
+
+| Package | Adds | Cost |
+|---|---|---|
+| `SignUniversal` | PE and MSI Authenticode | `System.Security.Cryptography.Pkcs`, `OpenMcdf` |
+| `SignUniversal.Azure` | Trusted Signing and Key Vault key sources | the Azure SDK |
+| `SignUniversal.NuGet` | `.nupkg` author signing | NuGet's client libraries |
+
+```csharp
+using IRemoteSigner signer = new TrustedSigningRemoteSigner(endpoint, account, profile);
+PeSigner.SignFile("app.exe", signer, HashAlgorithmName.SHA256, timestampUrl);
+MsiSigner.SignFile("installer.msi", signer, HashAlgorithmName.SHA256, timestampUrl);
+```
+
+Signing happens on a copy that replaces the original only on success, so a lost network or
+a rejected credential cannot leave behind a file whose old signature is gone and whose new
+one was never written.
+
+`IRemoteSigner` is one `SignHash` method, so the key can stay wherever it already lives -
+the Azure implementations are just two of them. Referencing `SignUniversal` on its own
+costs no Azure and no NuGet dependency.
 
 ## Key sources
 
