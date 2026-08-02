@@ -30,16 +30,16 @@ internal static class VerifyCommand
             return 2;
         }
 
+        if (!FileArguments.TryResolve(files, baseDirectory: null, out List<string> resolved, out string? resolveError))
+        {
+            Console.Error.WriteLine($"error: {char.ToLowerInvariant(resolveError![0])}{resolveError[1..]}");
+            return 2;
+        }
+
         bool allGood = true;
 
-        foreach (string file in files)
+        foreach (string file in resolved)
         {
-            if (!File.Exists(file))
-            {
-                Console.Error.WriteLine($"error: file not found: {file}");
-                return 2;
-            }
-
             allGood &= await Report(file).ConfigureAwait(false);
         }
 

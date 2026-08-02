@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\src\SignUniversal\SignUniversal.csproj" />
     <ProjectReference Include="..\..\src\SignUniversal.Azure\SignUniversal.Azure.csproj" />
     <ProjectReference Include="..\..\src\SignUniversal.NuGet\SignUniversal.NuGet.csproj" />
+    <ProjectReference Include="..\..\src\SignUniversal.Cli\SignUniversal.Cli.csproj" />
   </ItemGroup>
 
   <!--

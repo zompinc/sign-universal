@@ -58,6 +58,9 @@ internal static class Program
               --self-signed                         Throwaway certificate, smoke tests only.
 
             sign options:
+              --base-directory <path>
+                                  Resolve file patterns from this directory instead of
+                                  the current one.
               --hash <algorithm>  Digest algorithm: sha256 (default), sha384, or sha512.
               --export-certificate <path>
                                   Write the signing certificate out in DER form, for
@@ -111,6 +114,7 @@ internal static class Program
         bool selfSigned = false;
         bool noTimestamp = false;
         bool trustSigningRoot = false;
+        string? baseDirectory = null;
 
         for (int i = 1; i < args.Length; i++)
         {
@@ -154,6 +158,9 @@ internal static class Program
                 case "--no-timestamp":
                     noTimestamp = true;
                     break;
+                case "--base-directory":
+                    if (!TryTakeValue(args, ref i, out baseDirectory)) return UsageError($"'{argument}' needs a value.");
+                    break;
                 case "--trust-signing-root":
                     trustSigningRoot = true;
                     break;
@@ -169,10 +176,12 @@ internal static class Program
 
         if (files.Count == 0) return UsageError("Specify at least one file to sign.");
 
-        foreach (string candidate in files.Where(candidate => !File.Exists(candidate)))
+        if (!FileArguments.TryResolve(files, baseDirectory, out List<string> resolved, out string? resolveError))
         {
-            return UsageError($"File not found: {candidate}");
+            return UsageError(resolveError!);
         }
+
+        files = resolved;
 
         bool trustedSigning = endpoint is not null || account is not null || certificateProfile is not null;
         if (trustedSigning && (endpoint is null || account is null || certificateProfile is null))
