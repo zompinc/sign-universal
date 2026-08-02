@@ -356,7 +356,8 @@ internal static class Program
 
         Console.Error.WriteLine(
             "WARNING: --no-timestamp means this signature stops validating when the signing " +
-            $"certificate expires - {signer.Certificate.NotAfter:u}, about {remaining.TotalHours:F0} hours away.");
+            $"certificate expires - {signer.Certificate.NotAfter.ToUniversalTime():u}, "
+            + $"about {remaining.TotalHours:F0} hours away.");
     }
 
     /// <summary>
@@ -374,7 +375,9 @@ internal static class Program
         File.WriteAllBytes(path, signer.Certificate.RawData);
 
         Console.WriteLine($"  certificate written to {path}");
-        Console.WriteLine($"  valid until:      {signer.Certificate.NotAfter:u}");
+        // NotAfter is local time and the "u" format appends Z without converting, so
+        // without ToUniversalTime this reports the expiry off by the UTC offset.
+        Console.WriteLine($"  valid until:      {signer.Certificate.NotAfter.ToUniversalTime():u}");
     }
 
     private static bool IsMsi(string path) =>
