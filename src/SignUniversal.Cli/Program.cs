@@ -55,6 +55,11 @@ internal static class Program
                 --trusted-signing-certificate-profile <name>.
                 Credentials come from AZURE_TENANT_ID / AZURE_CLIENT_ID /
                 AZURE_CLIENT_SECRET, as DefaultAzureCredential reads them.
+              --trusted-signing-metadata <path>     Those three from the JSON file that
+                                                    vpk and dotnet sign already take:
+                                                    Endpoint, CodeSigningAccountName,
+                                                    CertificateProfileName. Also spelled
+                                                    --azure-trusted-sign-file, as vpk does.
               --self-signed                         Throwaway certificate, smoke tests only.
 
             sign options:
@@ -71,6 +76,11 @@ internal static class Program
                                   Linux agent - see the README.
               --no-timestamp      Skip timestamping. Trusted Signing certificates expire in
                                   days, and so will the signature.
+              --skip-signed       Leave any PE or MSI that already carries a signature
+                                  alone, and sign the rest. Authenticode keeps one primary
+                                  signature, so signing a vendor-signed assembly replaces
+                                  theirs rather than joining it. This checks that a
+                                  signature is present, not that it is valid or trusted.
               --trust-signing-root  Add the backend's root certificate to the current
                                   user's trust store. Needed on Linux agents, where
                                   signing otherwise fails with "Certificate chain
@@ -114,7 +124,9 @@ internal static class Program
         bool selfSigned = false;
         bool noTimestamp = false;
         bool trustSigningRoot = false;
+        bool skipSigned = false;
         string? baseDirectory = null;
+        string? metadataPath = null;
 
         for (int i = 1; i < args.Length; i++)
         {
@@ -138,6 +150,12 @@ internal static class Program
                     break;
                 case "--trusted-signing-certificate-profile":
                     if (!TryTakeValue(args, ref i, out certificateProfile)) return UsageError($"'{argument}' needs a value.");
+                    break;
+                // The second spelling is the one vpk uses for the same file, so a command
+                // line can be moved across without editing it.
+                case "--trusted-signing-metadata":
+                case "--azure-trusted-sign-file":
+                    if (!TryTakeValue(args, ref i, out metadataPath)) return UsageError($"'{argument}' needs a value.");
                     break;
                 case "--key-vault-url":
                     if (!TryTakeValue(args, ref i, out keyVaultUrl)) return UsageError($"'{argument}' needs a value.");
@@ -164,6 +182,9 @@ internal static class Program
                 case "--trust-signing-root":
                     trustSigningRoot = true;
                     break;
+                case "--skip-signed":
+                    skipSigned = true;
+                    break;
                 case "--self-signed":
                     selfSigned = true;
                     break;
@@ -182,6 +203,23 @@ internal static class Program
         }
 
         files = resolved;
+
+        if (metadataPath is not null)
+        {
+            if (endpoint is not null || account is not null || certificateProfile is not null)
+            {
+                return UsageError(
+                    "Specify the Trusted Signing details either in the metadata file or as " +
+                    "--trusted-signing-* options, not both.");
+            }
+
+            if (!TrustedSigningMetadata.TryLoad(metadataPath, out TrustedSigningMetadata? metadata, out string? metadataError))
+            {
+                return UsageError(metadataError!);
+            }
+
+            (endpoint, account, certificateProfile) = (metadata!.Endpoint, metadata.Account, metadata.CertificateProfile);
+        }
 
         bool trustedSigning = endpoint is not null || account is not null || certificateProfile is not null;
         if (trustedSigning && (endpoint is null || account is null || certificateProfile is null))
@@ -228,8 +266,6 @@ internal static class Program
             default: return UsageError($"Unsupported hash algorithm '{hashName}'; use sha256, sha384, or sha512.");
         }
 
-        bool anyPeImage = files.Any(candidate => !IsPackage(candidate) && !IsMsi(candidate));
-
         if (selfSigned)
         {
             Console.Error.WriteLine(
@@ -239,6 +275,31 @@ internal static class Program
 
         try
         {
+            if (skipSigned)
+            {
+                (List<string> toSign, List<string> alreadySigned) = SigningTargets.PartitionBySignature(files);
+
+                foreach (string skipped in alreadySigned)
+                {
+                    Console.WriteLine($"Skipped {skipped} (already signed)");
+                }
+
+                if (toSign.Count == 0)
+                {
+                    // Returning before the signer exists is the point, not a shortcut: opening
+                    // a Trusted Signing session mints a certificate and costs a round trip, and
+                    // a caller signing one file per invocation would otherwise pay for one on
+                    // every vendor-signed assembly it hands over.
+                    Console.WriteLine("Nothing to sign; every file already carries a signature.");
+                    return 0;
+                }
+
+                files = toSign;
+            }
+
+            bool anyPeImage = files.Any(candidate =>
+                !SigningTargets.IsPackage(candidate) && !SigningTargets.IsMsi(candidate));
+
             IRemoteSigner signer;
             IDisposable owned;
 
@@ -290,11 +351,11 @@ internal static class Program
 
                 foreach (string target in files)
                 {
-                    if (IsPackage(target))
+                    if (SigningTargets.IsPackage(target))
                     {
                         await SignPackage(target, signer, hashAlgorithm, timestamper, noTimestamp).ConfigureAwait(false);
                     }
-                    else if (IsMsi(target))
+                    else if (SigningTargets.IsMsi(target))
                     {
                         Uri? timestampUrl = ResolveTimestampUrl(timestamper, noTimestamp);
                         byte[] digest = MsiSigner.SignFile(target, signer, hashAlgorithm, timestampUrl);
@@ -315,16 +376,60 @@ internal static class Program
 
             return 0;
         }
-        catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or InvalidOperationException
+        catch (Exception ex) when (IsMisconfiguration(Unwrap(ex)))
+        {
+            Console.Error.WriteLine($"error: {Describe(Unwrap(ex))}");
+            return 1;
+        }
+    }
+
+    /// <summary>
+    /// Whether a failure is something the caller set up wrong, rather than a defect here.
+    /// </summary>
+    private static bool IsMisconfiguration(Exception ex) =>
+        ex is InvalidDataException or NotSupportedException or InvalidOperationException
             or IOException or UnauthorizedAccessException or CryptographicException or UriFormatException
             or SignatureException or TimestampException
             // Azure surfaces missing permissions, expired keys, and bad credentials this
             // way. They are ordinary misconfiguration, not defects worth a stack trace.
-            or RequestFailedException or AuthenticationFailedException)
+            or RequestFailedException or AuthenticationFailedException;
+
+    /// <summary>
+    /// Digs out the failure worth reporting.
+    /// </summary>
+    /// <remarks>
+    /// The Azure credential chain does its work asynchronously and is waited on, so a
+    /// rejected credential arrives wrapped in an <see cref="AggregateException"/> - which
+    /// matches nothing in the filter above, and so used to abort the process with a stack
+    /// trace where a wrong AZURE_CLIENT_ID deserves one line.
+    /// </remarks>
+    private static Exception Unwrap(Exception ex) =>
+        ex is AggregateException aggregate && aggregate.Flatten().InnerException is { } inner ? inner : ex;
+
+    /// <summary>
+    /// Describes a failure, following the inner exceptions.
+    /// </summary>
+    /// <remarks>
+    /// Azure.Identity reports "ClientSecretCredential authentication failed" and leaves the
+    /// part that says why - the AADSTS code - one layer down, so stopping at the outermost
+    /// message tells the caller only that something went wrong.
+    /// </remarks>
+    private static string Describe(Exception ex)
+    {
+        List<string> messages = [];
+
+        for (Exception? current = ex; current is not null; current = current.InnerException)
         {
-            Console.Error.WriteLine($"error: {ex.Message}");
-            return 1;
+            // MSAL writes several lines, the first being the diagnosis and the rest a
+            // restatement of the exception type. One line each keeps the chain readable.
+            string message = current.Message.Split('\n')[0].Trim().TrimEnd(':').Trim();
+            if (message.Length > 0 && !messages.Contains(message, StringComparer.Ordinal))
+            {
+                messages.Add(message);
+            }
         }
+
+        return messages.Count > 0 ? string.Join(": ", messages) : ex.GetType().Name;
     }
 
     private static async Task SignPackage(
@@ -378,18 +483,6 @@ internal static class Program
         // NotAfter is local time and the "u" format appends Z without converting, so
         // without ToUniversalTime this reports the expiry off by the UTC offset.
         Console.WriteLine($"  valid until:      {signer.Certificate.NotAfter.ToUniversalTime():u}");
-    }
-
-    private static bool IsMsi(string path) =>
-        string.Equals(Path.GetExtension(path), ".msi", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsPackage(string path)
-    {
-        // Symbol packages are ordinary packages as far as signing is concerned, and
-        // publishing a signed .nupkg beside an unsigned .snupkg is a odd thing to ship.
-        string extension = Path.GetExtension(path);
-        return string.Equals(extension, ".nupkg", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(extension, ".snupkg", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryTakeValue(string[] args, ref int index, out string value)

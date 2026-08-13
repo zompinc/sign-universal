@@ -57,6 +57,28 @@ public static class AuthenticodeInspector
             Timestamp: AuthenticodeTimestamp.TryGetTimestamp(cms)?.TokenInfo.Timestamp);
     }
 
+    /// <summary>Reports whether a file already carries an Authenticode signature.</summary>
+    /// <param name="path">The file to examine.</param>
+    /// <param name="isMsi">Whether the file is an MSI package rather than a PE image.</param>
+    /// <returns><see langword="true"/> if a signature is present.</returns>
+    /// <remarks>
+    /// Presence, not trust: this reports that a signature is there, not that it validates or
+    /// chains anywhere. That is the only answer available off Windows, and it is the one a
+    /// caller needs when the question is "would signing this clobber somebody else's
+    /// signature" - Authenticode keeps a single primary signature, so it would.
+    /// </remarks>
+    public static bool HasSignature(string path, bool isMsi)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+
+        using FileStream stream = File.OpenRead(path);
+        byte[]? signature = isMsi
+            ? MsiFile.ReadEmbeddedSignature(stream)
+            : PeFile.ReadEmbeddedSignature(stream);
+
+        return signature is not null;
+    }
+
     private static HashAlgorithmName DigestAlgorithmOf(SignedCms cms) =>
         cms.SignerInfos[0].DigestAlgorithm.Value switch
         {

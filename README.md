@@ -52,6 +52,20 @@ the signature is intact and whether it still covers the bytes on disk; it exits 
 not. It deliberately leaves *trust* to `signtool verify /pa` and `dotnet nuget verify`,
 which already decide it properly.
 
+When a build tool hands over a whole publish output - Velopack's `--signTemplate` does, one
+file per invocation - `--skip-signed` leaves alone anything that already carries a
+signature:
+
+```bash
+sign-universal sign app.dll --trusted-signing-metadata signing.json --skip-signed
+```
+
+Authenticode keeps a single primary signature, so signing an assembly Microsoft already
+signed does not add ours beside theirs, it replaces it. The check is presence, not trust:
+that is the only answer available off Windows, and it is the one that matters when the
+question is whether signing would clobber somebody else's work. Nothing is skipped without
+`--skip-signed`, since deliberate re-signing is legitimate.
+
 For packages, the hashing and the zip surgery that inserts `.signature.p7s` are NuGet's own
 libraries - the format's reference implementation. All this adds is the one thing they
 cannot do: a CMS signature from a key it never holds.
@@ -85,7 +99,7 @@ costs no Azure and no NuGet dependency.
 
 | Source | Options |
 |---|---|
-| Azure Trusted Signing | `--trusted-signing-endpoint`, `--trusted-signing-account`, `--trusted-signing-certificate-profile` |
+| Azure Trusted Signing | `--trusted-signing-endpoint`, `--trusted-signing-account`, `--trusted-signing-certificate-profile`, or all three from `--trusted-signing-metadata <file>` |
 | Azure Key Vault | `--key-vault-url`, `--key-vault-certificate` |
 | Local PKCS#12 | `--pfx`, with `SIGNUNIVERSAL_PFX_PASSWORD` or `--password-stdin` |
 | Throwaway | `--self-signed`, for smoke tests only |
@@ -93,6 +107,11 @@ costs no Azure and no NuGet dependency.
 Both cloud sources authenticate through `DefaultAzureCredential`, so the usual `AZURE_*`
 variables work unchanged. Key Vault needs `certificates/get` **and** `keys/sign` - separate
 permissions, and holding the first without the second is the usual surprise.
+
+`--trusted-signing-metadata` reads the JSON file `vpk` and `dotnet sign` already take
+(`Endpoint`, `CodeSigningAccountName`, `CertificateProfileName`), which matters when a tool
+takes the signing command as one string and splits it on whitespace. `--azure-trusted-sign-file`
+is the same flag under the name `vpk` gives it.
 
 `--export-certificate` writes out the certificate that signed, which is what a gallery
 wants when it requires registration.
