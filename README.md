@@ -1,5 +1,12 @@
 # sign-universal
 
+[![Build](https://github.com/zompinc/sign-universal/actions/workflows/build.yml/badge.svg)](https://github.com/zompinc/sign-universal/actions/workflows/build.yml)
+![Support .NET 8.0](https://img.shields.io/badge/dotnet%20version-net8.0-blue)
+![Runs on Linux, macOS and Windows](https://img.shields.io/badge/runs%20on-Linux%20%7C%20macOS%20%7C%20Windows-blue)
+[![SignUniversal.Cli](https://img.shields.io/nuget/v/SignUniversal.Cli?label=SignUniversal.Cli)](https://www.nuget.org/packages/SignUniversal.Cli)
+[![License](https://img.shields.io/github/license/zompinc/sign-universal)](LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/zompinc/sign-universal)
+
 Cross-platform code signing for .NET - sign NuGet packages, Windows binaries (PE) and
 installers (MSI) from **Linux, macOS or Windows**, with the private key held in **Azure
 Trusted Signing** or **Azure Key Vault**, where it stays.
@@ -77,9 +84,9 @@ out to a process:
 
 | Package | Adds | Cost |
 |---|---|---|
-| `SignUniversal` | PE and MSI Authenticode | `System.Security.Cryptography.Pkcs`, `OpenMcdf` |
-| `SignUniversal.Azure` | Trusted Signing and Key Vault key sources | the Azure SDK |
-| `SignUniversal.NuGet` | `.nupkg` author signing | NuGet's client libraries |
+| [![SignUniversal](https://img.shields.io/nuget/v/SignUniversal?label=SignUniversal)](https://www.nuget.org/packages/SignUniversal) | PE and MSI Authenticode | `System.Security.Cryptography.Pkcs`, `OpenMcdf` |
+| [![SignUniversal.Azure](https://img.shields.io/nuget/v/SignUniversal.Azure?label=SignUniversal.Azure)](https://www.nuget.org/packages/SignUniversal.Azure) | Trusted Signing and Key Vault key sources | the Azure SDK |
+| [![SignUniversal.NuGet](https://img.shields.io/nuget/v/SignUniversal.NuGet?label=SignUniversal.NuGet)](https://www.nuget.org/packages/SignUniversal.NuGet) | `.nupkg` author signing | NuGet's client libraries |
 
 ```csharp
 using IRemoteSigner signer = new TrustedSigningRemoteSigner(endpoint, account, profile);
