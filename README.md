@@ -1,6 +1,5 @@
 # sign-universal
 
-![Sign anywhere, the key stays put](https://img.shields.io/badge/Sign_anywhere-Key_stays_in_the_HSM-purple)
 [![Build](https://github.com/zompinc/sign-universal/actions/workflows/build.yml/badge.svg)](https://github.com/zompinc/sign-universal/actions/workflows/build.yml)
 ![Support .NET 8.0](https://img.shields.io/badge/dotnet%20version-net8.0-blue)
 ![Runs on Linux, macOS and Windows](https://img.shields.io/badge/runs%20on-Linux%20%7C%20macOS%20%7C%20Windows-blue)
