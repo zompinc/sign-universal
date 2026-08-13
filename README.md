@@ -1,5 +1,13 @@
 # sign-universal
 
+![Sign anywhere, the key stays put](https://img.shields.io/badge/Sign_anywhere-Key_stays_in_the_HSM-purple)
+[![Build](https://github.com/zompinc/sign-universal/actions/workflows/build.yml/badge.svg)](https://github.com/zompinc/sign-universal/actions/workflows/build.yml)
+![Runs on Linux, macOS and Windows](https://img.shields.io/badge/runs%20on-Linux%20%7C%20macOS%20%7C%20Windows-blue)
+[![SignUniversal](https://img.shields.io/nuget/v/SignUniversal?label=SignUniversal)](https://www.nuget.org/packages/SignUniversal)
+[![SignUniversal.Cli](https://img.shields.io/nuget/v/SignUniversal.Cli?label=SignUniversal.Cli)](https://www.nuget.org/packages/SignUniversal.Cli)
+[![License](https://img.shields.io/github/license/zompinc/sign-universal)](LICENSE)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/zompinc/sign-universal)
+
 Cross-platform code signing for .NET - sign NuGet packages, Windows binaries (PE) and
 installers (MSI) from **Linux, macOS or Windows**, with the private key held in **Azure
 Trusted Signing** or **Azure Key Vault**, where it stays.
